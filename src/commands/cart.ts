@@ -3,13 +3,13 @@
  */
 
 import {
-  getCart,
   addToCart,
-  updateCartLine,
-  removeCartLine,
+  type CartLine,
+  getCart,
   getCustomerGroupId,
   getShoppingLists,
-  type CartLine,
+  removeCartLine,
+  updateCartLine,
 } from "../api.ts";
 import { requireAuth } from "../auth.ts";
 
@@ -17,7 +17,7 @@ import { requireAuth } from "../auth.ts";
  * View current cart contents.
  */
 export async function cartViewCommand(
-  options: { json?: boolean } = {}
+  options: { json?: boolean } = {},
 ): Promise<void> {
   const tokens = await requireAuth();
   const groupId = await getCustomerGroupId(tokens);
@@ -43,7 +43,7 @@ export async function cartViewCommand(
     const lineTotal = (line as any).total || price * line.quantity;
     total += lineTotal;
     console.log(
-      `  [${line.id}] ${name}  x${line.quantity}  ${price} kr  = ${lineTotal} kr  (SKU: ${sku})`
+      `  [${line.id}] ${name}  x${line.quantity}  ${price} kr  = ${lineTotal} kr  (SKU: ${sku})`,
     );
   }
   console.log(`\n  Total: ${total} kr`);
@@ -55,7 +55,7 @@ export async function cartViewCommand(
 export async function cartAddCommand(
   sku: string,
   quantity: number = 1,
-  options: { json?: boolean } = {}
+  options: { json?: boolean } = {},
 ): Promise<void> {
   const tokens = await requireAuth();
   const groupId = await getCustomerGroupId(tokens);
@@ -77,7 +77,7 @@ export async function cartAddCommand(
 export async function cartUpdateCommand(
   lineId: number,
   quantity: number,
-  options: { json?: boolean } = {}
+  options: { json?: boolean } = {},
 ): Promise<void> {
   const tokens = await requireAuth();
   const groupId = await getCustomerGroupId(tokens);
@@ -96,7 +96,7 @@ export async function cartUpdateCommand(
  */
 export async function cartRemoveCommand(
   lineId: number,
-  options: { json?: boolean } = {}
+  options: { json?: boolean } = {},
 ): Promise<void> {
   const tokens = await requireAuth();
   const groupId = await getCustomerGroupId(tokens);
@@ -114,7 +114,7 @@ export async function cartRemoveCommand(
  * View shopping lists.
  */
 export async function listCommand(
-  options: { json?: boolean } = {}
+  options: { json?: boolean } = {},
 ): Promise<void> {
   const tokens = await requireAuth();
   const lists = await getShoppingLists(tokens);

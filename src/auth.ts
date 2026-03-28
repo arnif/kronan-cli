@@ -5,8 +5,8 @@
  * Stores tokens in ~/.kronan/tokens.json for persistence between CLI invocations.
  */
 
-import { join } from "path";
-import { homedir } from "os";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 // Cognito configuration
 const COGNITO_ENDPOINT = "https://cognito-idp.eu-west-1.amazonaws.com/";
@@ -106,7 +106,7 @@ export async function initiateAuth(phoneNumber: string): Promise<{
 export async function pollAuth(
   phoneNumber: string,
   session: string,
-  onStatus?: (status: string, attempt: number) => void
+  onStatus?: (status: string, attempt: number) => void,
 ): Promise<AuthTokens> {
   let currentSession = session;
 
@@ -121,7 +121,7 @@ export async function pollAuth(
           ANSWER: "answer",
         },
         Session: currentSession,
-      }
+      },
     );
 
     // Check for successful auth
@@ -130,8 +130,7 @@ export async function pollAuth(
         accessToken: data.AuthenticationResult.AccessToken,
         idToken: data.AuthenticationResult.IdToken,
         refreshToken: data.AuthenticationResult.RefreshToken,
-        expiresAt:
-          Date.now() + data.AuthenticationResult.ExpiresIn * 1000,
+        expiresAt: Date.now() + data.AuthenticationResult.ExpiresIn * 1000,
       };
 
       await saveTokens(tokens);
@@ -182,7 +181,7 @@ export async function refreshAuth(refreshToken: string): Promise<AuthTokens> {
  * Save tokens to disk.
  */
 async function saveTokens(tokens: AuthTokens): Promise<void> {
-  const { mkdir } = await import("fs/promises");
+  const { mkdir } = await import("node:fs/promises");
   await mkdir(TOKEN_DIR, { recursive: true });
   await Bun.write(TOKEN_FILE, JSON.stringify(tokens, null, 2));
 }
@@ -224,9 +223,7 @@ export async function loadTokens(): Promise<AuthTokens | null> {
 export async function requireAuth(): Promise<AuthTokens> {
   const tokens = await loadTokens();
   if (!tokens) {
-    throw new Error(
-      "Not logged in. Run 'kronan login' first."
-    );
+    throw new Error("Not logged in. Run 'kronan login' first.");
   }
   return tokens;
 }
@@ -237,7 +234,7 @@ export async function requireAuth(): Promise<AuthTokens> {
 export async function clearTokens(): Promise<void> {
   const file = Bun.file(TOKEN_FILE);
   if (await file.exists()) {
-    const { unlink } = await import("fs/promises");
+    const { unlink } = await import("node:fs/promises");
     await unlink(TOKEN_FILE);
   }
 }

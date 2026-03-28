@@ -2,7 +2,7 @@
  * Login command - authenticates via Rafræn skilríki
  */
 
-import { initiateAuth, pollAuth, loadTokens, clearTokens } from "../auth.ts";
+import { clearTokens, initiateAuth, loadTokens, pollAuth } from "../auth.ts";
 
 export async function loginCommand(phoneNumber: string): Promise<void> {
   console.log(`Initiating login for phone number: ${phoneNumber}`);
@@ -24,7 +24,7 @@ export async function loginCommand(phoneNumber: string): Promise<void> {
   // Decode IdToken to get user name
   try {
     const payload = JSON.parse(
-      Buffer.from(tokens.idToken.split(".")[1]!, "base64").toString()
+      Buffer.from(tokens.idToken.split(".")[1]!, "base64").toString(),
     );
     console.log(`  Welcome, ${payload.name}`);
   } catch {}
@@ -44,7 +44,7 @@ export async function statusCommand(): Promise<void> {
 
   try {
     const payload = JSON.parse(
-      Buffer.from(tokens.idToken.split(".")[1]!, "base64").toString()
+      Buffer.from(tokens.idToken.split(".")[1]!, "base64").toString(),
     );
     console.log(
       JSON.stringify(
@@ -55,8 +55,8 @@ export async function statusCommand(): Promise<void> {
           expiresAt: new Date(tokens.expiresAt).toISOString(),
         },
         null,
-        2
-      )
+        2,
+      ),
     );
   } catch {
     console.log(JSON.stringify({ loggedIn: true }));

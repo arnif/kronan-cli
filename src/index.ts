@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * kronan-cli - Krónan grocery store CLI
  *
@@ -26,12 +27,22 @@
  *   --store <extId>              Store ID for search
  */
 
-import { loginCommand, logoutCommand, statusCommand } from "./commands/login.ts";
-import { searchCommand, productDetailCommand } from "./commands/search.ts";
-import { ordersCommand, orderDetailCommand } from "./commands/orders.ts";
-import { cartAddCommand, cartViewCommand, cartUpdateCommand, cartRemoveCommand, listCommand } from "./commands/cart.ts";
 import { getUserProfile } from "./api.ts";
 import { requireAuth } from "./auth.ts";
+import {
+  cartAddCommand,
+  cartRemoveCommand,
+  cartUpdateCommand,
+  cartViewCommand,
+  listCommand,
+} from "./commands/cart.ts";
+import {
+  loginCommand,
+  logoutCommand,
+  statusCommand,
+} from "./commands/login.ts";
+import { orderDetailCommand, ordersCommand } from "./commands/orders.ts";
+import { productDetailCommand, searchCommand } from "./commands/search.ts";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -73,12 +84,16 @@ async function main() {
       case "search": {
         const query = args[1];
         if (!query) {
-          console.error("Usage: kronan search <query> [--page N] [--limit N] [--store ID] [--json]");
+          console.error(
+            "Usage: kronan search <query> [--page N] [--limit N] [--store ID] [--json]",
+          );
           process.exit(1);
         }
         await searchCommand(query, {
-          page: getFlag("page") ? parseInt(getFlag("page")!) : undefined,
-          pageSize: getFlag("limit") ? parseInt(getFlag("limit")!) : undefined,
+          page: getFlag("page") ? parseInt(getFlag("page")!, 10) : undefined,
+          pageSize: getFlag("limit")
+            ? parseInt(getFlag("limit")!, 10)
+            : undefined,
           store: getFlag("store"),
           json: jsonOutput,
         });
@@ -97,8 +112,10 @@ async function main() {
 
       case "orders":
         await ordersCommand({
-          limit: getFlag("limit") ? parseInt(getFlag("limit")!) : undefined,
-          offset: getFlag("offset") ? parseInt(getFlag("offset")!) : undefined,
+          limit: getFlag("limit") ? parseInt(getFlag("limit")!, 10) : undefined,
+          offset: getFlag("offset")
+            ? parseInt(getFlag("offset")!, 10)
+            : undefined,
           json: jsonOutput,
         });
         break;
@@ -118,7 +135,7 @@ async function main() {
         switch (subcommand) {
           case "add": {
             const sku = args[2];
-            const qty = args[3] ? parseInt(args[3]) : 1;
+            const qty = args[3] ? parseInt(args[3], 10) : 1;
             if (!sku) {
               console.error("Usage: kronan cart add <sku> [quantity] [--json]");
               process.exit(1);
@@ -132,18 +149,20 @@ async function main() {
             break;
           }
           case "update": {
-            const lineId = args[2] ? parseInt(args[2]) : NaN;
-            const qty = args[3] ? parseInt(args[3]) : NaN;
-            if (isNaN(lineId) || isNaN(qty)) {
-              console.error("Usage: kronan cart update <lineId> <quantity> [--json]");
+            const lineId = args[2] ? parseInt(args[2], 10) : NaN;
+            const qty = args[3] ? parseInt(args[3], 10) : NaN;
+            if (Number.isNaN(lineId) || Number.isNaN(qty)) {
+              console.error(
+                "Usage: kronan cart update <lineId> <quantity> [--json]",
+              );
               process.exit(1);
             }
             await cartUpdateCommand(lineId, qty, { json: jsonOutput });
             break;
           }
           case "remove": {
-            const lineId = args[2] ? parseInt(args[2]) : NaN;
-            if (isNaN(lineId)) {
+            const lineId = args[2] ? parseInt(args[2], 10) : NaN;
+            if (Number.isNaN(lineId)) {
               console.error("Usage: kronan cart remove <lineId> [--json]");
               process.exit(1);
             }

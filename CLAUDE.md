@@ -7,6 +7,10 @@ CLI tool for Kronan.is grocery store. Uses Bun runtime.
 - `bun install` to install dependencies
 - `bun run src/index.ts <command>` to run commands
 - `bun test` to run tests
+- `bun run lint` to check lint and formatting (Biome)
+- `bun run lint:fix` to auto-fix lint and formatting issues
+- `bun run typecheck` to run TypeScript type checking
+- `bun run check` to run all checks (lint + typecheck + test)
 
 ## Architecture
 

@@ -6,11 +6,7 @@ import { getOrders } from "../api.ts";
 import { requireAuth } from "../auth.ts";
 
 export async function ordersCommand(
-  options: {
-    limit?: number;
-    offset?: number;
-    json?: boolean;
-  } = {}
+  options: { limit?: number; offset?: number; json?: boolean } = {},
 ): Promise<void> {
   const { limit = 15, offset = 0, json = false } = options;
 
@@ -29,7 +25,9 @@ export async function ordersCommand(
     const total = parseFloat(order.totalNetAmount).toLocaleString("is-IS");
     const itemCount = order.lines.length;
 
-    console.log(`  #${order.id}  ${date}  ${total} kr  (${itemCount} items)  [${order.status}]`);
+    console.log(
+      `  #${order.id}  ${date}  ${total} kr  (${itemCount} items)  [${order.status}]`,
+    );
 
     // Show first few items
     const preview = order.lines.slice(0, 3);
@@ -53,7 +51,7 @@ export async function ordersCommand(
  */
 export async function orderDetailCommand(
   orderId: string,
-  options: { json?: boolean } = {}
+  options: { json?: boolean } = {},
 ): Promise<void> {
   const tokens = await requireAuth();
 
@@ -61,7 +59,7 @@ export async function orderDetailCommand(
   // The API doesn't seem to support fetching by ID directly
   const data = await getOrders(tokens, { limit: 100 });
   const order = data.results.find(
-    (o) => String(o.id) === orderId || o.token === orderId
+    (o) => String(o.id) === orderId || o.token === orderId,
   );
 
   if (!order) {
@@ -85,7 +83,11 @@ export async function orderDetailCommand(
 
   for (const line of order.lines) {
     const name = line.product?.name || line.productName;
-    const unitPrice = parseFloat(line.unitPriceNetAmount).toLocaleString("is-IS");
-    console.log(`    ${line.productSku}  ${name}  x${line.quantity}  ${unitPrice} kr/ea`);
+    const unitPrice = parseFloat(line.unitPriceNetAmount).toLocaleString(
+      "is-IS",
+    );
+    console.log(
+      `    ${line.productSku}  ${name}  x${line.quantity}  ${unitPrice} kr/ea`,
+    );
   }
 }

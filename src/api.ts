@@ -151,7 +151,7 @@ async function apiRequest<T>(
     tokens?: AuthTokens;
     params?: Record<string, string>;
     extraHeaders?: Record<string, string>;
-  } = {}
+  } = {},
 ): Promise<T> {
   const { method = "GET", body, tokens, params, extraHeaders } = options;
 
@@ -167,7 +167,7 @@ async function apiRequest<T>(
   };
 
   if (tokens) {
-    headers["Authorization"] = `CognitoJWT ${tokens.idToken}`;
+    headers.Authorization = `CognitoJWT ${tokens.idToken}`;
   }
 
   if (extraHeaders) {
@@ -206,7 +206,7 @@ export async function searchProducts(
     storeExtId?: string;
     onlyInSelection?: boolean;
     sortBy?: string;
-  } = {}
+  } = {},
 ): Promise<SearchResult> {
   const {
     page = 1,
@@ -216,22 +216,19 @@ export async function searchProducts(
     sortBy = "default",
   } = options;
 
-  return apiRequest<SearchResult>(
-    "/products/raw-search/?with_detail=true",
-    {
-      method: "POST",
-      body: {
-        query,
-        onlyInSelection,
-        onlyInSpecializedSelection: false,
-        page,
-        pageSize,
-        storeExtIds: [storeExtId],
-        includeWholesale: false,
-        sortBy,
-      },
-    }
-  );
+  return apiRequest<SearchResult>("/products/raw-search/?with_detail=true", {
+    method: "POST",
+    body: {
+      query,
+      onlyInSelection,
+      onlyInSpecializedSelection: false,
+      page,
+      pageSize,
+      storeExtIds: [storeExtId],
+      includeWholesale: false,
+      sortBy,
+    },
+  });
 }
 
 /**
@@ -239,7 +236,7 @@ export async function searchProducts(
  */
 export async function getProduct(
   sku: string,
-  tokens?: AuthTokens
+  tokens?: AuthTokens,
 ): Promise<any> {
   return apiRequest(`/products/${sku}/`, { tokens });
 }
@@ -249,7 +246,7 @@ export async function getProduct(
  */
 export async function getOrders(
   tokens: AuthTokens,
-  options: { limit?: number; offset?: number } = {}
+  options: { limit?: number; offset?: number } = {},
 ): Promise<OrdersResponse> {
   const { limit = 15, offset = 0 } = options;
   return apiRequest<OrdersResponse>("/orders/", {
@@ -264,9 +261,7 @@ export async function getOrders(
 /**
  * Get user profile.
  */
-export async function getUserProfile(
-  tokens: AuthTokens
-): Promise<UserProfile> {
+export async function getUserProfile(tokens: AuthTokens): Promise<UserProfile> {
   return apiRequest<UserProfile>("/users/me/", { tokens });
 }
 
@@ -330,7 +325,7 @@ export interface Cart {
  * Get customer groups (needed for Customer-Group-Id header).
  */
 export async function getCustomerGroups(
-  tokens: AuthTokens
+  tokens: AuthTokens,
 ): Promise<CustomerGroup[]> {
   return apiRequest<CustomerGroup[]>("/customer_groups/", { tokens });
 }
@@ -339,13 +334,11 @@ export async function getCustomerGroups(
  * Get the customer group ID (first group).
  * Throws if no customer groups are found.
  */
-export async function getCustomerGroupId(
-  tokens: AuthTokens
-): Promise<number> {
+export async function getCustomerGroupId(tokens: AuthTokens): Promise<number> {
   const groups = await getCustomerGroups(tokens);
   if (groups.length === 0) {
     throw new Error(
-      "No customer groups found. Your account may not be part of a group."
+      "No customer groups found. Your account may not be part of a group.",
     );
   }
   return groups[0]!.id;
@@ -360,7 +353,7 @@ function cartHeaders(customerGroupId: number): Record<string, string> {
  */
 export async function getCart(
   tokens: AuthTokens,
-  customerGroupId: number
+  customerGroupId: number,
 ): Promise<Cart> {
   return apiRequest<Cart>("/smart-checkouts/default/", {
     tokens,
@@ -374,7 +367,7 @@ export async function getCart(
 export async function addToCart(
   tokens: AuthTokens,
   customerGroupId: number,
-  lines: Array<{ sku: string; quantity: number; source?: string }>
+  lines: Array<{ sku: string; quantity: number; source?: string }>,
 ): Promise<any> {
   return apiRequest("/smart-checkouts/default/lines/", {
     method: "POST",
@@ -398,7 +391,7 @@ export async function updateCartLine(
   tokens: AuthTokens,
   customerGroupId: number,
   lineId: number,
-  quantity: number
+  quantity: number,
 ): Promise<any> {
   return apiRequest(`/smart-checkouts/default/lines/${lineId}/`, {
     method: "PATCH",
@@ -414,7 +407,7 @@ export async function updateCartLine(
 export async function removeCartLine(
   tokens: AuthTokens,
   customerGroupId: number,
-  lineId: number
+  lineId: number,
 ): Promise<void> {
   const url = `${BASE_URL}/smart-checkouts/default/lines/${lineId}/`;
   const headers: Record<string, string> = {
@@ -447,7 +440,7 @@ export async function getShoppingLists(tokens: AuthTokens): Promise<any[]> {
 export async function createShoppingList(
   tokens: AuthTokens,
   name: string,
-  items: Array<{ sku: string; quantity: number }>
+  items: Array<{ sku: string; quantity: number }>,
 ): Promise<any> {
   return apiRequest("/product_list/", {
     method: "POST",

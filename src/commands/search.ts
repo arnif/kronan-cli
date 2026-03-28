@@ -2,7 +2,7 @@
  * Product search command
  */
 
-import { searchProducts, getProduct } from "../api.ts";
+import { getProduct, searchProducts } from "../api.ts";
 import { loadTokens } from "../auth.ts";
 
 export async function searchCommand(
@@ -12,7 +12,7 @@ export async function searchCommand(
     pageSize?: number;
     store?: string;
     json?: boolean;
-  } = {}
+  } = {},
 ): Promise<void> {
   const { page = 1, pageSize = 20, store, json = false } = options;
 
@@ -27,7 +27,9 @@ export async function searchCommand(
     return;
   }
 
-  console.log(`Found ${result.count} products (page ${result.page}/${result.pageCount}):\n`);
+  console.log(
+    `Found ${result.count} products (page ${result.page}/${result.pageCount}):\n`,
+  );
 
   for (const product of result.results.hits) {
     const sale = product.detail?.onSale ? " [SALE]" : "";
@@ -38,18 +40,22 @@ export async function searchCommand(
         : "";
 
     console.log(`  ${product.sku}  ${product.name}`);
-    console.log(`           ${product.price} kr  ${product.priceInfo}${sale}${discount}${shortage}`);
+    console.log(
+      `           ${product.price} kr  ${product.priceInfo}${sale}${discount}${shortage}`,
+    );
     console.log("");
   }
 
   if (result.hasNextPage) {
-    console.log(`  → More results: kronan search "${query}" --page ${result.page + 1}`);
+    console.log(
+      `  → More results: kronan search "${query}" --page ${result.page + 1}`,
+    );
   }
 }
 
 export async function productDetailCommand(
   sku: string,
-  options: { json?: boolean } = {}
+  options: { json?: boolean } = {},
 ): Promise<void> {
   const tokens = await loadTokens();
   const product = await getProduct(sku, tokens ?? undefined);
