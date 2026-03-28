@@ -35,5 +35,6 @@ CLI tool for Kronan.is grocery store. Uses Bun runtime.
 - Cart update: `PATCH /api/smart-checkouts/default/lines/{id}/`
 - Cart remove: `DELETE /api/smart-checkouts/default/lines/{id}/`
 - Orders: `GET /api/orders/`
+- Order detail: `GET /api/orders/{id}/`
 - User profile: `GET /api/users/me/`
 - Customer groups: `GET /api/customer_groups/`

@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from "bun:test";
-import { getCustomerGroupId, searchProducts } from "./api.ts";
+import { getCustomerGroupId, getOrder, searchProducts } from "./api.ts";
 
 // --- searchProducts ---
 
@@ -173,6 +173,70 @@ describe("getCustomerGroupId", () => {
     try {
       await expect(getCustomerGroupId(fakeTokens)).rejects.toThrow(
         "API error 401",
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+// --- getOrder ---
+
+describe("getOrder", () => {
+  const fakeTokens = {
+    accessToken: "access",
+    idToken: "id",
+    refreshToken: "refresh",
+    expiresAt: Date.now() + 3600000,
+  };
+
+  test("fetches order by ID directly", async () => {
+    const fakeOrder = {
+      id: 727555,
+      orderId: "ORD-727555",
+      token: "abc123",
+      created: "2025-01-01T00:00:00Z",
+      displayDate: "2025-01-01T00:00:00Z",
+      status: "delivered",
+      totalNetAmount: "5000",
+      discountAmount: "0",
+      lines: [],
+    };
+
+    const mockFetch = mock(() =>
+      Promise.resolve(new Response(JSON.stringify(fakeOrder), { status: 200 })),
+    );
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
+
+    try {
+      const order = await getOrder(fakeTokens, "727555");
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const call = mockFetch.mock.calls[0]!;
+      const [url] = call as unknown as [string, RequestInit];
+      expect(url).toBe("https://backend.kronan.is/api/orders/727555/");
+      expect(order.id).toBe(727555);
+      expect(order.status).toBe("delivered");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test("throws on not found", async () => {
+    const mockFetch = mock(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ detail: "Not found." }), { status: 404 }),
+      ),
+    );
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
+
+    try {
+      await expect(getOrder(fakeTokens, "999999")).rejects.toThrow(
+        "API error 404",
       );
     } finally {
       globalThis.fetch = originalFetch;

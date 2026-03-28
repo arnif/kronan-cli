@@ -2,7 +2,7 @@
  * Order history command
  */
 
-import { getOrders } from "../api.ts";
+import { getOrder, getOrders } from "../api.ts";
 import { requireAuth } from "../auth.ts";
 
 export async function ordersCommand(
@@ -54,18 +54,7 @@ export async function orderDetailCommand(
   options: { json?: boolean } = {},
 ): Promise<void> {
   const tokens = await requireAuth();
-
-  // Fetch all orders and find the matching one
-  // The API doesn't seem to support fetching by ID directly
-  const data = await getOrders(tokens, { limit: 100 });
-  const order = data.results.find(
-    (o) => String(o.id) === orderId || o.token === orderId,
-  );
-
-  if (!order) {
-    console.error(`Order ${orderId} not found.`);
-    process.exit(1);
-  }
+  const order = await getOrder(tokens, orderId);
 
   if (options.json) {
     console.log(JSON.stringify(order, null, 2));

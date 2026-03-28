@@ -259,6 +259,16 @@ export async function getOrders(
 }
 
 /**
+ * Get a single order by ID.
+ */
+export async function getOrder(
+  tokens: AuthTokens,
+  orderId: string,
+): Promise<Order> {
+  return apiRequest<Order>(`/orders/${orderId}/`, { tokens });
+}
+
+/**
  * Get user profile.
  */
 export async function getUserProfile(tokens: AuthTokens): Promise<UserProfile> {
