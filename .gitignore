@@ -1,0 +1,44 @@
+# dependencies
+node_modules
+
+# output
+out
+dist
+*.tgz
+
+# code coverage
+coverage
+*.lcov
+
+# logs
+logs
+*.log
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# dotenv environment variable files
+.env
+.env.*
+
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
+# IDEs
+.idea
+.vscode
+
+# OS
+.DS_Store
+Thumbs.db
+
+# --- Sensitive / PII ---
+
+# Auth tokens (contains Cognito JWTs with personal data)
+.kronan/
+~/.kronan/
+tokens.json
+
+# Any exported order data or analysis temp files
+/tmp/kronan-*
+*.orders.json
