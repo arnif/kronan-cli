@@ -5,6 +5,12 @@ description: >
   view orders. Requires GitHub CLI for install. Stores auth tokens at
   ~/.kronan/tokens.json. Requires Icelandic phone number with Rafraen skilriki.
 version: 0.1.0
+requires:
+  binaries:
+    - gh        # GitHub CLI — required for install
+    - bun       # Bun runtime — only needed if building from source
+  paths:
+    - ~/.kronan/tokens.json   # Cognito JWT tokens (created at login)
 metadata:
   openclaw:
     homepage: https://github.com/arnif/kronan-cli
@@ -100,6 +106,10 @@ kronan me --json
 ## AI Agent Usage
 
 All commands support `--json` for structured output. This makes kronan-cli suitable as a tool for AI agents managing grocery shopping.
+
+**Important:** Commands that change state (`cart add`, `cart update`, `cart remove`, `login`) can modify the user's real shopping cart or initiate authentication. Agents **must ask for explicit user confirmation** before running any state-changing command.
+
+Read-only commands (`search`, `product`, `orders`, `order`, `cart` (view), `me`, `status`) are safe to run without confirmation.
 
 Example agent workflow:
 
