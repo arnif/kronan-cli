@@ -2,12 +2,29 @@
 
 CLI for [Kronan.is](https://www.kronan.is) -- Iceland's grocery store. Search products, manage your cart, and view order history from the terminal. Built with [Bun](https://bun.sh) and designed to be used by AI agents.
 
-## Quick start
+## Install
+
+### One-liner (requires [GitHub CLI](https://cli.github.com))
 
 ```bash
-git clone https://github.com/macarni/kronan-cli.git
+gh repo clone arnif/kronan-cli /tmp/kronan-cli && bash /tmp/kronan-cli/install.sh
+```
+
+This downloads the latest pre-built binary for your platform and installs it to `~/.local/bin/kronan`.
+
+### Custom install directory
+
+```bash
+INSTALL_DIR=/usr/local/bin bash install.sh
+```
+
+### From source (development)
+
+```bash
+git clone https://github.com/arnif/kronan-cli.git
 cd kronan-cli
 bun install
+bun run src/index.ts help
 ```
 
 ## Authentication
@@ -79,8 +96,8 @@ src/
 
 ## Requirements
 
-- [Bun](https://bun.sh) runtime
 - Icelandic phone number with Rafraen skilriki for authentication
+- [GitHub CLI](https://cli.github.com) for installation (or [Bun](https://bun.sh) if running from source)
 
 ## License
 

@@ -4,28 +4,23 @@ description: CLI tool for Kronan.is, Iceland's grocery store. Search products, m
 version: 0.1.0
 metadata:
   openclaw:
-    requires:
-      bins:
-        - bun
-    homepage: https://github.com/macarni/kronan-cli
+    homepage: https://github.com/arnif/kronan-cli
     emoji: "\U0001F6D2"
-    install:
-      - kind: node
-        package: bun
-        bins: [bun]
 ---
 
 # kronan-cli
 
 CLI tool for shopping at [Kronan.is](https://www.kronan.is), Iceland's grocery store chain. Designed for both humans and AI agents.
 
-## Setup
+## Install
+
+Requires [GitHub CLI](https://cli.github.com):
 
 ```bash
-git clone https://github.com/macarni/kronan-cli.git
-cd kronan-cli
-bun install
+gh repo clone arnif/kronan-cli /tmp/kronan-cli && bash /tmp/kronan-cli/install.sh
 ```
+
+This installs a standalone binary to `~/.local/bin/kronan`. No runtime dependencies needed.
 
 ## Authentication
 
