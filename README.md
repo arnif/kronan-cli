@@ -32,7 +32,7 @@ bun run src/index.ts help
 Kronan uses **Rafraen skilriki** (Iceland's SIM-based electronic ID) for login. You need an Icelandic phone number with Rafraen skilriki enabled.
 
 ```bash
-kronan login REDACTED     # Sends auth request to your phone
+kronan login XXXXXX     # Sends auth request to your phone
 kronan status            # Check if you're logged in
 kronan logout            # Clear tokens
 ```
