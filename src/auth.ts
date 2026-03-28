@@ -10,6 +10,8 @@ import { homedir } from "os";
 
 // Cognito configuration
 const COGNITO_ENDPOINT = "https://cognito-idp.eu-west-1.amazonaws.com/";
+// Public Cognito app client ID — this is NOT a secret. It's embedded in
+// the Kronan.is frontend and is required for the CUSTOM_AUTH flow.
 const CLIENT_ID = "26cfceo8iffeoulsfnkopgfnbv";
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_ATTEMPTS = 40; // ~2 minutes

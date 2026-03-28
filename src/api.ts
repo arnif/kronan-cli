@@ -337,16 +337,18 @@ export async function getCustomerGroups(
 
 /**
  * Get the customer group ID (first group).
- * Falls back to hardcoded value if API call fails.
+ * Throws if no customer groups are found.
  */
 export async function getCustomerGroupId(
   tokens: AuthTokens
 ): Promise<number> {
-  try {
-    const groups = await getCustomerGroups(tokens);
-    if (groups.length > 0) return groups[0]!.id;
-  } catch {}
-  return 22444; // fallback
+  const groups = await getCustomerGroups(tokens);
+  if (groups.length === 0) {
+    throw new Error(
+      "No customer groups found. Your account may not be part of a group."
+    );
+  }
+  return groups[0]!.id;
 }
 
 function cartHeaders(customerGroupId: number): Record<string, string> {

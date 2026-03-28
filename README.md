@@ -53,7 +53,7 @@ kronan cart remove <id>       Remove line from cart
 kronan orders                 Order history
 kronan order <id>             Specific order details
 
-kronan me                     User profile
+kronan me                     User profile (⚠️  outputs PII, see below)
 ```
 
 All commands support `--json` for structured output.
@@ -93,6 +93,10 @@ src/
     orders.ts           order history
     cart.ts             cart management
 ```
+
+## Privacy
+
+`kronan me` outputs your full user profile including **personally identifiable information (PII)** such as your name, phone number, and Icelandic national ID number (kennitala/SSN). Be careful when sharing this output — avoid pasting it in public channels, issue trackers, or LLM conversations that may be logged.
 
 ## Requirements
 

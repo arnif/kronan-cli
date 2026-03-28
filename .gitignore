@@ -36,7 +36,6 @@ Thumbs.db
 
 # Auth tokens (contains Cognito JWTs with personal data)
 .kronan/
-~/.kronan/
 tokens.json
 
 # Any exported order data or analysis temp files
