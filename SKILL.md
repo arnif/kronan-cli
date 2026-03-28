@@ -1,6 +1,9 @@
 ---
 name: kronan-cli
-description: CLI tool for Kronan.is, Iceland's grocery store. Search products, manage cart, view orders. Built for AI agents.
+description: >
+  CLI tool for Kronan.is, Iceland's grocery store. Search products, manage cart,
+  view orders. Requires GitHub CLI for install. Stores auth tokens at
+  ~/.kronan/tokens.json. Requires Icelandic phone number with Rafraen skilriki.
 version: 0.1.0
 metadata:
   openclaw:
@@ -12,19 +15,35 @@ metadata:
 
 CLI tool for shopping at [Kronan.is](https://www.kronan.is), Iceland's grocery store chain. Designed for both humans and AI agents.
 
-## Install
+## Prerequisites
 
-Requires [GitHub CLI](https://cli.github.com):
+- [GitHub CLI](https://cli.github.com) (`gh`) — required for the install command
+- An Icelandic phone number with **Rafraen skilriki** (SIM-based electronic ID) enabled — required for authentication
+
+## Install
 
 ```bash
 gh repo clone arnif/kronan-cli /tmp/kronan-cli && bash /tmp/kronan-cli/install.sh
 ```
 
-This installs a standalone binary to `~/.local/bin/kronan`. No runtime dependencies needed.
+**What this does:** clones the repo to `/tmp/kronan-cli`, then `install.sh` downloads a pre-built binary from the latest GitHub release and places it at `~/.local/bin/kronan` (override with `INSTALL_DIR`).
+
+To build from source instead:
+
+```bash
+gh repo clone arnif/kronan-cli && cd kronan-cli
+bun install && bun build --compile src/index.ts --outfile kronan
+mv kronan ~/.local/bin/
+```
+
+## Security and privacy
+
+- **Install script**: `install.sh` executes on your machine and downloads a binary. Audit the [repository](https://github.com/arnif/kronan-cli) and the script before running.
+- **Token storage**: Auth tokens (Cognito JWTs) are stored at `~/.kronan/tokens.json`. These contain session credentials tied to your identity. Ensure the file is only readable by your user (`chmod 600 ~/.kronan/tokens.json`).
+- **PII**: `kronan me` outputs your full user profile including name, phone number, and Icelandic national ID number (kennitala). Do not share this output in public channels or logged LLM conversations.
+- **Credentials**: The login flow sends an auth request to your phone via Rafraen skilriki. No passwords are transmitted or stored — authentication is SIM-based.
 
 ## Authentication
-
-Kronan uses Rafraen skilriki (Iceland's SIM-based electronic ID) for authentication. You must have an Icelandic phone number with Rafraen skilriki enabled.
 
 ```bash
 kronan login <phone-number>
@@ -74,7 +93,8 @@ kronan order <id>            # Specific order details
 ### User profile
 
 ```bash
-kronan me
+kronan me              # ⚠️  Outputs PII (name, phone, kennitala)
+kronan me --json
 ```
 
 ## AI Agent Usage
