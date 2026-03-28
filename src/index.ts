@@ -230,7 +230,7 @@ Flags:
   --store <extId>        Store external ID (search)
 
 Examples:
-  kronan login REDACTED
+  kronan login <phone-number>
   kronan search "mjólk"
   kronan search "epli" --json --limit 5
   kronan product 02500188
