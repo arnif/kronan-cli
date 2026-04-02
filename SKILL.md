@@ -1,9 +1,9 @@
 ---
 name: kronan-cli
 description: >
-  CLI tool for Kronan.is, Iceland's grocery store. Search products, manage cart,
-  view orders. Requires GitHub CLI for install. Stores auth tokens at
-  ~/.kronan/tokens.json. Requires Icelandic phone number with Rafraen skilriki.
+  Search Krónan grocery prices and product details. Use when user asks about
+  grocery prices, Krónan products, or needs SKU numbers for shopping lists.
+  Leit að matvöruverði í Krónunni - nota þegar notandi spyr um verð eða vörur.
 version: 0.1.0
 requires:
   binaries:
