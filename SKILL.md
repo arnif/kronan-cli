@@ -1,9 +1,10 @@
 ---
 name: kronan-cli
 description: >
-  Search Krónan grocery prices and product details. Use when user asks about
-  grocery prices, Krónan products, or needs SKU numbers for shopping lists.
-  Leit að matvöruverði í Krónunni - nota þegar notandi spyr um verð eða vörur.
+  Search Krónan for groceries and prices, get SKU numbers, add to or change
+  shopping cart, and view past order history. Leita að verði á matvörum í
+  Krónunni, vinna með innkaupakörfu (bæta í eða breyta), og skoða gamlar
+  pantanir.
 version: 0.1.0
 requires:
   binaries:
