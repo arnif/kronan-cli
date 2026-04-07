@@ -12,6 +12,7 @@ requires:
     - bun       # Bun runtime — only needed if building from source
   paths:
     - ~/.kronan/tokens.json   # Cognito JWT tokens (created at login)
+    - ~/.kronan/config.json   # CLI config (active customer group, etc.)
 metadata:
   openclaw:
     homepage: https://github.com/arnif/kronan-cli
@@ -95,7 +96,21 @@ kronan cart remove <lineId>        # Remove item
 kronan orders                # Recent orders
 kronan orders --json         # JSON output for parsing
 kronan order <id>            # Specific order details
+kronan orders --group <id>   # Orders for a specific customer group
 ```
+
+### Customer groups
+
+Krónan supports shared customer groups (e.g., family/household accounts). Orders and cart can be scoped to a group.
+
+```bash
+kronan groups                # List available groups
+kronan group <id>            # Set active group (persisted in config)
+kronan group                 # Show current active group
+kronan group clear           # Switch back to personal account
+```
+
+Once set, all `orders`, `order`, and `cart` commands use the active group. Override per-command with `--group <id>`.
 
 ### User profile
 
@@ -108,9 +123,9 @@ kronan me --json
 
 All commands support `--json` for structured output. This makes kronan-cli suitable as a tool for AI agents managing grocery shopping.
 
-**Important:** Commands that change state (`cart add`, `cart update`, `cart remove`, `login`) can modify the user's real shopping cart or initiate authentication. Agents **must ask for explicit user confirmation** before running any state-changing command.
+**Important:** Commands that change state (`cart add`, `cart update`, `cart remove`, `login`, `group <id>`, `group clear`) can modify the user's real shopping cart, config, or initiate authentication. Agents **must ask for explicit user confirmation** before running any state-changing command.
 
-Read-only commands (`search`, `product`, `orders`, `order`, `cart` (view), `me`, `status`) are safe to run without confirmation.
+Read-only commands (`search`, `product`, `orders`, `order`, `cart` (view), `groups`, `group` (no arg), `me`, `status`) are safe to run without confirmation.
 
 Example agent workflow:
 
@@ -147,6 +162,7 @@ An agent can analyze order history to find frequently purchased items and auto-p
 | `--limit <n>` | Results per page |
 | `--offset <n>` | Offset for pagination (orders) |
 | `--store <extId>` | Store external ID (search, default: 159) |
+| `--group <id>` | Customer group ID (orders, cart) |
 
 ## API Reference
 
