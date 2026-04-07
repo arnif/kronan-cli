@@ -349,8 +349,8 @@ Examples:
   kronan orders --json
   kronan order 727555
   kronan groups
-  kronan group 7921
-  kronan orders --group 7921
+  kronan group 1234
+  kronan orders --group 1234
   kronan cart
   kronan cart add 02500188 2
   kronan cart remove 12345

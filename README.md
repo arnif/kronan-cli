@@ -68,7 +68,7 @@ If your Krónan account belongs to a shared customer group (e.g., a family accou
 
 ```bash
 kronan groups                 # List available groups
-kronan group 7921             # Set active group (persisted)
+kronan group <id>             # Set active group (persisted)
 kronan orders                 # Now shows group orders
 kronan group clear            # Back to personal account
 ```
@@ -76,8 +76,8 @@ kronan group clear            # Back to personal account
 You can also override per-command with `--group <id>`:
 
 ```bash
-kronan orders --group 7921
-kronan cart view --group 7921
+kronan orders --group <id>
+kronan cart view --group <id>
 ```
 
 Group config is stored in `~/.kronan/config.json`.
