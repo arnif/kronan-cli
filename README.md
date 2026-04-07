@@ -53,10 +53,34 @@ kronan cart remove <id>       Remove line from cart
 kronan orders                 Order history
 kronan order <id>             Specific order details
 
+kronan groups                 List customer groups (shared accounts)
+kronan group <id>             Set active group
+kronan group clear            Switch back to personal account
+
 kronan me                     User profile (⚠️  outputs PII, see below)
 ```
 
 All commands support `--json` for structured output.
+
+### Customer groups
+
+If your Krónan account belongs to a shared customer group (e.g., a family account), you can switch to it to access shared orders and cart:
+
+```bash
+kronan groups                 # List available groups
+kronan group 7921             # Set active group (persisted)
+kronan orders                 # Now shows group orders
+kronan group clear            # Back to personal account
+```
+
+You can also override per-command with `--group <id>`:
+
+```bash
+kronan orders --group 7921
+kronan cart view --group 7921
+```
+
+Group config is stored in `~/.kronan/config.json`.
 
 ## AI agent usage
 
