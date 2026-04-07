@@ -19,6 +19,11 @@ const MAX_POLL_ATTEMPTS = 40; // ~2 minutes
 // Token storage path
 const TOKEN_DIR = join(homedir(), ".kronan");
 const TOKEN_FILE = join(TOKEN_DIR, "tokens.json");
+const CONFIG_FILE = join(TOKEN_DIR, "config.json");
+
+export interface Config {
+  customerGroupId?: number;
+}
 
 export interface AuthTokens {
   accessToken: string;
@@ -237,4 +242,44 @@ export async function clearTokens(): Promise<void> {
     const { unlink } = await import("node:fs/promises");
     await unlink(TOKEN_FILE);
   }
+}
+
+/**
+ * Load config from disk.
+ */
+export async function loadConfig(): Promise<Config> {
+  const file = Bun.file(CONFIG_FILE);
+
+  if (!(await file.exists())) {
+    return {};
+  }
+
+  try {
+    return await file.json();
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Save config to disk.
+ */
+export async function saveConfig(config: Config): Promise<void> {
+  const { mkdir } = await import("node:fs/promises");
+  await mkdir(TOKEN_DIR, { recursive: true });
+  await Bun.write(CONFIG_FILE, JSON.stringify(config, null, 2));
+}
+
+/**
+ * Get the active customer group ID from config or flag.
+ * Returns undefined if no group is set.
+ */
+export async function getActiveGroupId(
+  flagValue?: number,
+): Promise<number | undefined> {
+  if (flagValue !== undefined) {
+    return flagValue;
+  }
+  const config = await loadConfig();
+  return config.customerGroupId;
 }

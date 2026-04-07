@@ -3,15 +3,21 @@
  */
 
 import { getOrder, getOrders } from "../api.ts";
-import { requireAuth } from "../auth.ts";
+import { getActiveGroupId, requireAuth } from "../auth.ts";
 
 export async function ordersCommand(
-  options: { limit?: number; offset?: number; json?: boolean } = {},
+  options: {
+    limit?: number;
+    offset?: number;
+    json?: boolean;
+    group?: number;
+  } = {},
 ): Promise<void> {
-  const { limit = 15, offset = 0, json = false } = options;
+  const { limit = 15, offset = 0, json = false, group } = options;
 
   const tokens = await requireAuth();
-  const data = await getOrders(tokens, { limit, offset });
+  const customerGroupId = await getActiveGroupId(group);
+  const data = await getOrders(tokens, { limit, offset, customerGroupId });
 
   if (json) {
     console.log(JSON.stringify(data, null, 2));
@@ -51,10 +57,11 @@ export async function ordersCommand(
  */
 export async function orderDetailCommand(
   orderId: string,
-  options: { json?: boolean } = {},
+  options: { json?: boolean; group?: number } = {},
 ): Promise<void> {
   const tokens = await requireAuth();
-  const order = await getOrder(tokens, orderId);
+  const customerGroupId = await getActiveGroupId(options.group);
+  const order = await getOrder(tokens, orderId, { customerGroupId });
 
   if (options.json) {
     console.log(JSON.stringify(order, null, 2));

@@ -246,15 +246,18 @@ export async function getProduct(
  */
 export async function getOrders(
   tokens: AuthTokens,
-  options: { limit?: number; offset?: number } = {},
+  options: { limit?: number; offset?: number; customerGroupId?: number } = {},
 ): Promise<OrdersResponse> {
-  const { limit = 15, offset = 0 } = options;
+  const { limit = 15, offset = 0, customerGroupId } = options;
   return apiRequest<OrdersResponse>("/orders/", {
     tokens,
     params: {
       limit: String(limit),
       offset: String(offset),
     },
+    extraHeaders: customerGroupId
+      ? { "Customer-Group-Id": String(customerGroupId) }
+      : undefined,
   });
 }
 
@@ -264,8 +267,15 @@ export async function getOrders(
 export async function getOrder(
   tokens: AuthTokens,
   orderId: string,
+  options: { customerGroupId?: number } = {},
 ): Promise<Order> {
-  return apiRequest<Order>(`/orders/${orderId}/`, { tokens });
+  const { customerGroupId } = options;
+  return apiRequest<Order>(`/orders/${orderId}/`, {
+    tokens,
+    extraHeaders: customerGroupId
+      ? { "Customer-Group-Id": String(customerGroupId) }
+      : undefined,
+  });
 }
 
 /**

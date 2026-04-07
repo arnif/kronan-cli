@@ -14,6 +14,8 @@
  *   kronan product <sku>         Get product details
  *   kronan orders                View order history
  *   kronan order <id>            View specific order
+ *   kronan groups                List customer groups
+ *   kronan group <id>            Set active group
  *   kronan cart                 View cart contents
  *   kronan cart add <sku> [qty]  Add item to cart
  *   kronan cart update <id> <q>  Update cart line quantity
@@ -25,10 +27,16 @@
  *   --page <n>                   Page number for search
  *   --limit <n>                  Items per page
  *   --store <extId>              Store ID for search
+ *   --group <id>                 Customer group ID (orders)
  */
 
-import { getUserProfile } from "./api.ts";
-import { requireAuth } from "./auth.ts";
+import { getCustomerGroups, getUserProfile } from "./api.ts";
+import {
+  getActiveGroupId,
+  loadConfig,
+  requireAuth,
+  saveConfig,
+} from "./auth.ts";
 import {
   cartAddCommand,
   cartRemoveCommand,
@@ -59,6 +67,9 @@ function hasFlag(name: string): boolean {
 }
 
 const jsonOutput = hasFlag("json");
+const groupFlag = getFlag("group")
+  ? parseInt(getFlag("group")!, 10)
+  : undefined;
 
 async function main() {
   try {
@@ -117,16 +128,76 @@ async function main() {
             ? parseInt(getFlag("offset")!, 10)
             : undefined,
           json: jsonOutput,
+          group: groupFlag,
         });
         break;
 
       case "order": {
         const orderId = args[1];
         if (!orderId) {
-          console.error("Usage: kronan order <id> [--json]");
+          console.error("Usage: kronan order <id> [--json] [--group ID]");
           process.exit(1);
         }
-        await orderDetailCommand(orderId, { json: jsonOutput });
+        await orderDetailCommand(orderId, { json: jsonOutput, group: groupFlag });
+        break;
+      }
+
+      case "groups": {
+        const tokens = await requireAuth();
+        const groups = await getCustomerGroups(tokens);
+        const config = await loadConfig();
+
+        if (jsonOutput) {
+          console.log(
+            JSON.stringify({ groups, activeGroupId: config.customerGroupId }, null, 2),
+          );
+        } else {
+          if (groups.length === 0) {
+            console.log("No customer groups found.");
+          } else {
+            console.log("Customer groups:\n");
+            for (const group of groups) {
+              const active = config.customerGroupId === group.id ? " (active)" : "";
+              console.log(`  ${group.id}  ${group.name}${active}`);
+              if (group.members?.length) {
+                for (const member of group.members) {
+                  const admin = member.isAdmin ? " [admin]" : "";
+                  console.log(`    - ${member.name}${admin}`);
+                }
+              }
+            }
+            console.log(
+              "\nUse 'kronan group <id>' to set active group for orders.",
+            );
+          }
+        }
+        break;
+      }
+
+      case "group": {
+        const groupId = args[1];
+        if (!groupId) {
+          // Show current group
+          const config = await loadConfig();
+          if (config.customerGroupId) {
+            console.log(`Active group: ${config.customerGroupId}`);
+          } else {
+            console.log("No active group set. Use 'kronan group <id>' to set one.");
+          }
+        } else if (groupId === "clear" || groupId === "none") {
+          await saveConfig({});
+          console.log("Cleared active group. Orders will now use personal account.");
+        } else {
+          const id = parseInt(groupId, 10);
+          if (Number.isNaN(id)) {
+            console.error("Invalid group ID. Use 'kronan groups' to see available groups.");
+            process.exit(1);
+          }
+          const config = await loadConfig();
+          config.customerGroupId = id;
+          await saveConfig(config);
+          console.log(`Active group set to ${id}. Orders will now use this group.`);
+        }
         break;
       }
 
@@ -232,6 +303,10 @@ Commands:
   orders                 View order history
   order <id>             View specific order details
 
+  groups                 List customer groups (shared accounts)
+  group <id>             Set active group for orders
+  group clear            Clear active group (use personal account)
+
   cart add <sku> [qty]   Add item to cart
   cart view              View cart contents (default)
   cart update <id> <qty> Update cart line quantity
@@ -247,6 +322,7 @@ Flags:
   --limit <n>            Results per page
   --offset <n>           Offset for pagination (orders)
   --store <extId>        Store external ID (search)
+  --group <id>           Use specific customer group (orders)
 
 Examples:
   kronan login <phone-number>
@@ -255,6 +331,9 @@ Examples:
   kronan product 02500188
   kronan orders --json
   kronan order 727555
+  kronan groups
+  kronan group 7921
+  kronan orders --group 7921
   kronan cart
   kronan cart add 02500188 2
   kronan cart remove 12345
