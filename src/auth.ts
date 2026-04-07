@@ -271,15 +271,28 @@ export async function saveConfig(config: Config): Promise<void> {
 }
 
 /**
- * Get the active customer group ID from config or flag.
- * Returns undefined if no group is set.
+ * Get the active customer group ID.
+ * Priority: flag > config > API fallback (first group).
+ * Returns undefined only if no group is found anywhere.
  */
 export async function getActiveGroupId(
   flagValue?: number,
+  tokens?: AuthTokens,
 ): Promise<number | undefined> {
   if (flagValue !== undefined) {
     return flagValue;
   }
   const config = await loadConfig();
-  return config.customerGroupId;
+  if (config.customerGroupId !== undefined) {
+    return config.customerGroupId;
+  }
+  // If tokens provided, fall back to first group from API
+  if (tokens) {
+    const { getCustomerGroups } = await import("./api.ts");
+    const groups = await getCustomerGroups(tokens);
+    if (groups.length > 0) {
+      return groups[0]!.id;
+    }
+  }
+  return undefined;
 }

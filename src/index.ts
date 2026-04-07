@@ -180,12 +180,18 @@ async function main() {
           // Show current group
           const config = await loadConfig();
           if (config.customerGroupId) {
-            console.log(`Active group: ${config.customerGroupId}`);
+            const tokens = await requireAuth();
+            const groups = await getCustomerGroups(tokens);
+            const match = groups.find((g) => g.id === config.customerGroupId);
+            const name = match ? ` (${match.name})` : "";
+            console.log(`Active group: ${config.customerGroupId}${name}`);
           } else {
             console.log("No active group set. Use 'kronan group <id>' to set one.");
           }
         } else if (groupId === "clear" || groupId === "none") {
-          await saveConfig({});
+          const config = await loadConfig();
+          delete config.customerGroupId;
+          await saveConfig(config);
           console.log("Cleared active group. Orders will now use personal account.");
         } else {
           const id = parseInt(groupId, 10);
@@ -193,10 +199,21 @@ async function main() {
             console.error("Invalid group ID. Use 'kronan groups' to see available groups.");
             process.exit(1);
           }
+          // Validate group exists
+          const tokens = await requireAuth();
+          const groups = await getCustomerGroups(tokens);
+          const match = groups.find((g) => g.id === id);
+          if (!match) {
+            console.error(`Group ${id} not found. Available groups:`);
+            for (const g of groups) {
+              console.error(`  ${g.id}  ${g.name}`);
+            }
+            process.exit(1);
+          }
           const config = await loadConfig();
           config.customerGroupId = id;
           await saveConfig(config);
-          console.log(`Active group set to ${id}. Orders will now use this group.`);
+          console.log(`Active group set to ${id} (${match.name}).`);
         }
         break;
       }
@@ -211,12 +228,12 @@ async function main() {
               console.error("Usage: kronan cart add <sku> [quantity] [--json]");
               process.exit(1);
             }
-            await cartAddCommand(sku, qty, { json: jsonOutput });
+            await cartAddCommand(sku, qty, { json: jsonOutput, group: groupFlag });
             break;
           }
           case "view":
           case undefined: {
-            await cartViewCommand({ json: jsonOutput });
+            await cartViewCommand({ json: jsonOutput, group: groupFlag });
             break;
           }
           case "update": {
@@ -228,7 +245,7 @@ async function main() {
               );
               process.exit(1);
             }
-            await cartUpdateCommand(lineId, qty, { json: jsonOutput });
+            await cartUpdateCommand(lineId, qty, { json: jsonOutput, group: groupFlag });
             break;
           }
           case "remove": {
@@ -237,7 +254,7 @@ async function main() {
               console.error("Usage: kronan cart remove <lineId> [--json]");
               process.exit(1);
             }
-            await cartRemoveCommand(lineId, { json: jsonOutput });
+            await cartRemoveCommand(lineId, { json: jsonOutput, group: groupFlag });
             break;
           }
           default:

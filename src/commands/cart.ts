@@ -6,21 +6,21 @@ import {
   addToCart,
   type CartLine,
   getCart,
-  getCustomerGroupId,
   getShoppingLists,
   removeCartLine,
   updateCartLine,
 } from "../api.ts";
-import { requireAuth } from "../auth.ts";
+import { getActiveGroupId, requireAuth } from "../auth.ts";
 
 /**
  * View current cart contents.
  */
 export async function cartViewCommand(
-  options: { json?: boolean } = {},
+  options: { json?: boolean; group?: number } = {},
 ): Promise<void> {
   const tokens = await requireAuth();
-  const groupId = await getCustomerGroupId(tokens);
+  const groupId = await getActiveGroupId(options.group, tokens);
+  if (!groupId) throw new Error("No customer group found. Use 'kronan group <id>' to set one.");
   const cart = await getCart(tokens, groupId);
 
   if (options.json) {
@@ -55,10 +55,11 @@ export async function cartViewCommand(
 export async function cartAddCommand(
   sku: string,
   quantity: number = 1,
-  options: { json?: boolean } = {},
+  options: { json?: boolean; group?: number } = {},
 ): Promise<void> {
   const tokens = await requireAuth();
-  const groupId = await getCustomerGroupId(tokens);
+  const groupId = await getActiveGroupId(options.group, tokens);
+  if (!groupId) throw new Error("No customer group found. Use 'kronan group <id>' to set one.");
 
   const result = await addToCart(tokens, groupId, [
     { sku, quantity, source: "search" },
@@ -77,10 +78,11 @@ export async function cartAddCommand(
 export async function cartUpdateCommand(
   lineId: number,
   quantity: number,
-  options: { json?: boolean } = {},
+  options: { json?: boolean; group?: number } = {},
 ): Promise<void> {
   const tokens = await requireAuth();
-  const groupId = await getCustomerGroupId(tokens);
+  const groupId = await getActiveGroupId(options.group, tokens);
+  if (!groupId) throw new Error("No customer group found. Use 'kronan group <id>' to set one.");
 
   const result = await updateCartLine(tokens, groupId, lineId, quantity);
 
@@ -96,10 +98,11 @@ export async function cartUpdateCommand(
  */
 export async function cartRemoveCommand(
   lineId: number,
-  options: { json?: boolean } = {},
+  options: { json?: boolean; group?: number } = {},
 ): Promise<void> {
   const tokens = await requireAuth();
-  const groupId = await getCustomerGroupId(tokens);
+  const groupId = await getActiveGroupId(options.group, tokens);
+  if (!groupId) throw new Error("No customer group found. Use 'kronan group <id>' to set one.");
 
   await removeCartLine(tokens, groupId, lineId);
 
