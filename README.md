@@ -43,14 +43,31 @@ kronan status            # Check if token is valid
 kronan logout            # Clear token
 ```
 
-Tokens are stored in `~/.kronan/token`.
+Tokens are stored in `~/.kronan/token`. Profile data is stored in `~/.kronan/profiles.json`.
 
 **Note:** You must have a Krónan account with Auðkenni (Icelandic e-ID) login to create access tokens.
+
+### Multiple profiles
+
+If you have access to multiple Krónan accounts (e.g., personal and a shared family account), you can save tokens as named profiles and switch between them:
+
+```bash
+kronan token <personal-token> --name personal
+kronan token <family-token> --name family
+
+kronan profiles              # List saved profiles
+kronan profile family        # Switch to family profile
+kronan profile personal      # Switch back
+kronan profile remove family # Remove a profile
+```
 
 ## Usage
 
 ```
 kronan token <token>          Save access token
+kronan token <token> --name <name>  Save as named profile
+kronan profiles               List saved profiles
+kronan profile <name>         Switch active profile
 kronan status                 Check authentication status
 kronan logout                 Clear stored token
 

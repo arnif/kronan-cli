@@ -8,6 +8,8 @@
  *
  * Usage:
  *   kronan token <token>       Save access token (create at https://kronan.is/adgangur/adgangslyklar)
+ *   kronan profiles            List saved profiles
+ *   kronan profile <name>      Switch active profile
  *   kronan logout              Clear stored token
  *   kronan status              Show login status
  *   kronan search <query>      Search for products
@@ -38,6 +40,9 @@ import {
 } from "./commands/categories.ts";
 import {
   logoutCommand,
+  profileRemoveCommand,
+  profileSwitchCommand,
+  profilesCommand,
   statusCommand,
   tokenCommand,
 } from "./commands/login.ts";
@@ -94,14 +99,14 @@ async function main() {
       case "token": {
         const tokenValue = args[1];
         if (!tokenValue) {
-          console.error("Usage: kronan token <access-token>");
+          console.error("Usage: kronan token <access-token> [--name <profile-name>]");
           console.error("");
           console.error(
             "Create an access token at: https://kronan.is/adgangur/adgangslyklar",
           );
           process.exit(1);
         }
-        await tokenCommand(tokenValue);
+        await tokenCommand(tokenValue, { name: getFlag("name") });
         break;
       }
 
@@ -112,6 +117,27 @@ async function main() {
       case "status":
         await statusCommand();
         break;
+
+      case "profiles":
+        await profilesCommand();
+        break;
+
+      case "profile": {
+        const subcommand = args[1];
+        if (!subcommand) {
+          await profilesCommand();
+        } else if (subcommand === "remove") {
+          const name = args[2];
+          if (!name) {
+            console.error("Usage: kronan profile remove <name>");
+            process.exit(1);
+          }
+          await profileRemoveCommand(name);
+        } else {
+          await profileSwitchCommand(subcommand);
+        }
+        break;
+      }
 
       case "search": {
         const query = args[1];
@@ -552,8 +578,14 @@ function printHelp() {
 
 Authentication:
   token <token>                   Save access token (create at https://kronan.is/adgangur/adgangslyklar)
+  token <token> --name <name>     Save token as a named profile
   logout                          Clear stored token
   status                          Show login status
+
+Profiles:
+  profiles                        List saved profiles
+  profile <name>                  Switch active profile
+  profile remove <name>           Remove a profile
 
 Products & Search:
   search <query>                  Search for products
@@ -613,11 +645,15 @@ Flags:
   --description <text>            Description for lists create
   --text <text>                   Text for notes
   --sku <sku>                     SKU for notes
+  --name <name>                   Profile name for token command
   --force                         Force destructive operations
   --include-ignored               Include ignored items in stats
 
 Examples:
-  kronan token abc123def456
+  kronan token abc123 --name personal
+  kronan token def456 --name family
+  kronan profiles
+  kronan profile family
   kronan search "mjólk"
   kronan search "epli" --json --limit 5
   kronan product 02500188
