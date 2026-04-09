@@ -1,5 +1,5 @@
 /**
- * Order history command
+ * Order history commands
  */
 
 import { getOrder, getOrders } from "../api.ts";
@@ -10,8 +10,8 @@ export async function ordersCommand(
 ): Promise<void> {
   const { limit = 15, offset = 0, json = false } = options;
 
-  const tokens = await requireAuth();
-  const data = await getOrders(tokens, { limit, offset });
+  const token = await requireAuth();
+  const data = await getOrders(token, { limit, offset });
 
   if (json) {
     console.log(JSON.stringify(data, null, 2));
@@ -21,24 +21,12 @@ export async function ordersCommand(
   console.log(`Order history (${data.count} total):\n`);
 
   for (const order of data.results) {
-    const date = new Date(order.displayDate).toLocaleDateString("is-IS");
-    const total = parseFloat(order.totalNetAmount).toLocaleString("is-IS");
-    const itemCount = order.lines.length;
+    const date = new Date(order.created).toLocaleDateString("is-IS");
+    const total = order.total.toLocaleString("is-IS");
 
     console.log(
-      `  #${order.id}  ${date}  ${total} kr  (${itemCount} items)  [${order.status}]`,
+      `  ${order.token.substring(0, 8)}...  ${date}  ${total} kr  [${order.status}]`,
     );
-
-    // Show first few items
-    const preview = order.lines.slice(0, 3);
-    for (const line of preview) {
-      const name = line.product?.name || line.productName;
-      console.log(`    - ${name} x${line.quantity}`);
-    }
-    if (order.lines.length > 3) {
-      console.log(`    ... and ${order.lines.length - 3} more items`);
-    }
-    console.log("");
   }
 
   if (data.next) {
@@ -50,33 +38,31 @@ export async function ordersCommand(
  * Show a specific order's details
  */
 export async function orderDetailCommand(
-  orderId: string,
+  orderToken: string,
   options: { json?: boolean } = {},
 ): Promise<void> {
-  const tokens = await requireAuth();
-  const order = await getOrder(tokens, orderId);
+  const token = await requireAuth();
+  const order = await getOrder(token, orderToken);
 
   if (options.json) {
     console.log(JSON.stringify(order, null, 2));
     return;
   }
 
-  const date = new Date(order.displayDate).toLocaleDateString("is-IS");
-  const total = parseFloat(order.totalNetAmount).toLocaleString("is-IS");
+  const date = new Date(order.created).toLocaleDateString("is-IS");
+  const total = order.total.toLocaleString("is-IS");
 
-  console.log(`Order #${order.id}`);
+  console.log(`Order ${order.token}`);
   console.log(`  Date:     ${date}`);
   console.log(`  Status:   ${order.status}`);
+  console.log(`  Type:     ${order.type || "N/A"}`);
   console.log(`  Total:    ${total} kr`);
   console.log(`  Items:`);
 
   for (const line of order.lines) {
-    const name = line.product?.name || line.productName;
-    const unitPrice = parseFloat(line.unitPriceNetAmount).toLocaleString(
-      "is-IS",
-    );
+    const unitPrice = line.unitPrice.toLocaleString("is-IS");
     console.log(
-      `    ${line.productSku}  ${name}  x${line.quantity}  ${unitPrice} kr/ea`,
+      `    ${line.sku}  ${line.productName}  x${line.quantity}  ${unitPrice} kr/ea`,
     );
   }
 }

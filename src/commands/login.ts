@@ -1,64 +1,65 @@
 /**
- * Login command - authenticates via Rafræn skilríki
+ * Token management commands
+ *
+ * The new Public API uses AccessToken authentication.
+ * Tokens are created at https://kronan.is/adgangur/adgangslyklar
  */
 
-import { clearTokens, initiateAuth, loadTokens, pollAuth } from "../auth.ts";
+import { getMe } from "../api.ts";
+import { clearToken, loadToken, saveToken } from "../auth.ts";
 
-export async function loginCommand(phoneNumber: string): Promise<void> {
-  console.log(`Initiating login for phone number: ${phoneNumber}`);
+export async function tokenCommand(tokenValue: string): Promise<void> {
+  // First validate the token before saving
+  const token = { token: tokenValue };
 
-  const { code, session } = await initiateAuth(phoneNumber);
-
-  console.log("");
-  console.log(`  Confirm code on your phone: ${code}`);
-  console.log("  Waiting for approval...");
-  console.log("");
-
-  const tokens = await pollAuth(phoneNumber, session, (status, attempt) => {
-    process.stdout.write(`\r  Status: ${status} (attempt ${attempt})   `);
-  });
-
-  console.log("\r  Login successful!                        ");
-  console.log("");
-
-  // Decode IdToken to get user name
   try {
-    const payload = JSON.parse(
-      Buffer.from(tokens.idToken.split(".")[1]!, "base64").toString(),
-    );
-    console.log(`  Welcome, ${payload.name}`);
-  } catch {}
+    const me = await getMe(token);
+    // Token is valid, save it
+    await saveToken(tokenValue);
+    console.log("Token saved successfully!");
+    console.log("");
+    console.log(`  Identity: ${me.name}`);
+    console.log(`  Type:     ${me.type}`);
+  } catch (error: any) {
+    throw new Error(`Token validation failed: ${error.message}`);
+  }
 }
 
 export async function logoutCommand(): Promise<void> {
-  await clearTokens();
-  console.log("Logged out. Tokens cleared.");
+  await clearToken();
+  console.log("Token cleared.");
 }
 
 export async function statusCommand(): Promise<void> {
-  const tokens = await loadTokens();
-  if (!tokens) {
-    console.log(JSON.stringify({ loggedIn: false }));
+  const token = await loadToken();
+  if (!token) {
+    console.log(JSON.stringify({ loggedIn: false }, null, 2));
     return;
   }
 
   try {
-    const payload = JSON.parse(
-      Buffer.from(tokens.idToken.split(".")[1]!, "base64").toString(),
-    );
+    const me = await getMe(token);
     console.log(
       JSON.stringify(
         {
           loggedIn: true,
-          username: payload["cognito:username"],
-          name: payload.name,
-          expiresAt: new Date(tokens.expiresAt).toISOString(),
+          name: me.name,
+          type: me.type,
         },
         null,
         2,
       ),
     );
-  } catch {
-    console.log(JSON.stringify({ loggedIn: true }));
+  } catch (error: any) {
+    console.log(
+      JSON.stringify(
+        {
+          loggedIn: false,
+          error: error.message,
+        },
+        null,
+        2,
+      ),
+    );
   }
 }
