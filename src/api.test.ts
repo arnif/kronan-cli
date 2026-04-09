@@ -1,5 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
-import { getCustomerGroupId, getOrder, searchProducts } from "./api.ts";
+import { getMe, getOrder, searchProducts } from "./api.ts";
+
+const fakeToken = { token: "test-access-token" };
 
 // --- searchProducts ---
 
@@ -13,23 +15,22 @@ describe("searchProducts", () => {
             page: 1,
             pageCount: 1,
             hasNextPage: false,
-            results: {
-              hits: [
-                {
-                  name: "Nýmjólk",
-                  sku: "100224198",
-                  categoryId: 1,
-                  thumbnail: "",
-                  price: 199,
-                  isPublished: true,
-                  inProductSelection: true,
-                  temporaryShortage: false,
-                  priceInfo: "199 kr.",
-                  chargedByWeight: false,
-                  baseComparisonUnit: "l",
-                },
-              ],
-            },
+            hits: [
+              {
+                name: "Nýmjólk",
+                sku: "100224198",
+                thumbnail: "",
+                price: 199,
+                discountedPrice: 199,
+                discountPercent: 0,
+                onSale: false,
+                priceInfo: "199 kr.",
+                chargedByWeight: false,
+                pricePerKilo: null,
+                baseComparisonUnit: "l",
+                temporaryShortage: false,
+              },
+            ],
           }),
           { status: 200 },
         ),
@@ -37,32 +38,32 @@ describe("searchProducts", () => {
     );
 
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = mockFetch as unknown as unknown as typeof fetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     try {
-      const result = await searchProducts("mjolk");
+      const result = await searchProducts(fakeToken, "mjolk");
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
       const call = mockFetch.mock.calls[0]!;
       const [url, options] = call as unknown as [string, RequestInit];
-      expect(url).toBe(
-        "https://backend.kronan.is/api/products/raw-search/?with_detail=true",
-      );
+      expect(url).toBe("https://api.kronan.is/api/v1/products/search/");
       expect(options.method).toBe("POST");
+      expect(options.headers).toMatchObject({
+        "Content-Type": "application/json",
+        Authorization: "AccessToken test-access-token",
+      });
       const body = JSON.parse(options.body as string);
       expect(body.query).toBe("mjolk");
       expect(body.page).toBe(1);
-      expect(body.pageSize).toBe(20);
-      expect(body.storeExtIds).toEqual(["159"]);
 
       expect(result.count).toBe(1);
-      expect(result.results.hits[0]!.name).toBe("Nýmjólk");
+      expect(result.hits[0]!.name).toBe("Nýmjólk");
     } finally {
       globalThis.fetch = originalFetch;
     }
   });
 
-  test("passes custom page and pageSize", async () => {
+  test("passes custom page", async () => {
     const mockFetch = mock(() =>
       Promise.resolve(
         new Response(
@@ -71,7 +72,7 @@ describe("searchProducts", () => {
             page: 3,
             pageCount: 5,
             hasNextPage: true,
-            results: { hits: [] },
+            hits: [],
           }),
           { status: 200 },
         ),
@@ -79,16 +80,15 @@ describe("searchProducts", () => {
     );
 
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = mockFetch as unknown as unknown as typeof fetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     try {
-      await searchProducts("test", { page: 3, pageSize: 5 });
+      await searchProducts(fakeToken, "test", { page: 3 });
 
       const call = mockFetch.mock.calls[0]!;
       const [, options] = call as unknown as [string, RequestInit];
       const body = JSON.parse(options.body as string);
       expect(body.page).toBe(3);
-      expect(body.pageSize).toBe(5);
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -107,28 +107,48 @@ describe("searchProducts", () => {
     globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     try {
-      await expect(searchProducts("test")).rejects.toThrow("API error 400");
+      await expect(searchProducts(fakeToken, "test")).rejects.toThrow(
+        "API error 400",
+      );
     } finally {
       globalThis.fetch = originalFetch;
     }
   });
 });
 
-// --- getCustomerGroupId ---
+// --- getMe ---
 
-describe("getCustomerGroupId", () => {
-  const fakeTokens = {
-    accessToken: "access",
-    idToken: "id",
-    refreshToken: "refresh",
-    expiresAt: Date.now() + 3600000,
-  };
+describe("getMe", () => {
+  test("returns user identity", async () => {
+    const mockFetch = mock(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ type: "user", name: "Test User" }), {
+          status: 200,
+        }),
+      ),
+    );
 
-  test("returns first group id", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
+
+    try {
+      const me = await getMe(fakeToken);
+      expect(me.type).toBe("user");
+      expect(me.name).toBe("Test User");
+
+      const call = mockFetch.mock.calls[0]!;
+      const [url] = call as unknown as [string, RequestInit];
+      expect(url).toBe("https://api.kronan.is/api/v1/me/");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test("returns customer group identity", async () => {
     const mockFetch = mock(() =>
       Promise.resolve(
         new Response(
-          JSON.stringify([{ id: 12345, name: "test-group", members: [] }]),
+          JSON.stringify({ type: "customer_group", name: "Test Group" }),
           { status: 200 },
         ),
       ),
@@ -138,42 +158,30 @@ describe("getCustomerGroupId", () => {
     globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     try {
-      const id = await getCustomerGroupId(fakeTokens);
-      expect(id).toBe(12345);
+      const me = await getMe(fakeToken);
+      expect(me.type).toBe("customer_group");
+      expect(me.name).toBe("Test Group");
     } finally {
       globalThis.fetch = originalFetch;
     }
   });
 
-  test("throws when no groups found", async () => {
+  test("handles array response (backward compatibility)", async () => {
     const mockFetch = mock(() =>
-      Promise.resolve(new Response(JSON.stringify([]), { status: 200 })),
+      Promise.resolve(
+        new Response(JSON.stringify([{ type: "user", name: "Test User" }]), {
+          status: 200,
+        }),
+      ),
     );
 
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     try {
-      await expect(getCustomerGroupId(fakeTokens)).rejects.toThrow(
-        "No customer groups found",
-      );
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-
-  test("propagates API errors", async () => {
-    const mockFetch = mock(() =>
-      Promise.resolve(new Response("Unauthorized", { status: 401 })),
-    );
-
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = mockFetch as unknown as typeof fetch;
-
-    try {
-      await expect(getCustomerGroupId(fakeTokens)).rejects.toThrow(
-        "API error 401",
-      );
+      const me = await getMe(fakeToken);
+      expect(me.type).toBe("user");
+      expect(me.name).toBe("Test User");
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -183,23 +191,16 @@ describe("getCustomerGroupId", () => {
 // --- getOrder ---
 
 describe("getOrder", () => {
-  const fakeTokens = {
-    accessToken: "access",
-    idToken: "id",
-    refreshToken: "refresh",
-    expiresAt: Date.now() + 3600000,
-  };
-
-  test("fetches order by ID directly", async () => {
+  test("fetches order by token", async () => {
     const fakeOrder = {
-      id: 727555,
-      orderId: "ORD-727555",
-      token: "abc123",
+      token: "abc123-def456",
       created: "2025-01-01T00:00:00Z",
-      displayDate: "2025-01-01T00:00:00Z",
-      status: "delivered",
-      totalNetAmount: "5000",
-      discountAmount: "0",
+      status: "fulfilled",
+      type: "delivery",
+      total: 5000,
+      discount: 0,
+      deliveryDate: "2025-01-02",
+      allowAlterOrderLines: false,
       lines: [],
     };
 
@@ -211,14 +212,14 @@ describe("getOrder", () => {
     globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     try {
-      const order = await getOrder(fakeTokens, "727555");
+      const order = await getOrder(fakeToken, "abc123-def456");
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
       const call = mockFetch.mock.calls[0]!;
       const [url] = call as unknown as [string, RequestInit];
-      expect(url).toBe("https://backend.kronan.is/api/orders/727555/");
-      expect(order.id).toBe(727555);
-      expect(order.status).toBe("delivered");
+      expect(url).toBe("https://api.kronan.is/api/v1/orders/abc123-def456/");
+      expect(order.token).toBe("abc123-def456");
+      expect(order.status).toBe("fulfilled");
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -235,7 +236,7 @@ describe("getOrder", () => {
     globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     try {
-      await expect(getOrder(fakeTokens, "999999")).rejects.toThrow(
+      await expect(getOrder(fakeToken, "notfound")).rejects.toThrow(
         "API error 404",
       );
     } finally {

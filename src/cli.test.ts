@@ -9,6 +9,7 @@ describe("CLI", () => {
     expect(result).toContain("cart");
     expect(result).toContain("orders");
     expect(result).toContain("--json");
+    expect(result).toContain("token");
   });
 
   test("no arguments shows help", async () => {
@@ -28,5 +29,13 @@ describe("CLI", () => {
     const result = await $`bun src/index.ts help`.text();
     // Ensure no real phone numbers leak into help text
     expect(result).not.toContain("8430822");
+  });
+
+  test("token command without argument shows error", async () => {
+    const proc = Bun.spawn(["bun", "src/index.ts", "token"], {
+      stderr: "pipe",
+    });
+    const stderr = await new Response(proc.stderr).text();
+    expect(stderr).toContain("Usage: kronan token");
   });
 });

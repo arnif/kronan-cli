@@ -2,16 +2,16 @@
 name: kronan-cli
 description: >
   Search Krónan for groceries and prices, get SKU numbers, add to or change
-  shopping cart, and view past order history. Leita að verði á matvörum í
-  Krónunni, vinna með innkaupakörfu (bæta í eða breyta), og skoða gamlar
-  pantanir.
-version: 0.1.0
+  shopping cart, and view past order history using the official Krónan Public API.
+  Leita að verði á matvörum í Krónunni, vinna með innkaupakörfu (bæta í eða breyta),
+  og skoða gamlar pantanir.
+version: 0.2.0
 requires:
   binaries:
     - gh        # GitHub CLI — required for install
     - bun       # Bun runtime — only needed if building from source
   paths:
-    - ~/.kronan/tokens.json   # Cognito JWT tokens (created at login)
+    - ~/.kronan/token   # AccessToken for Public API authentication
 metadata:
   openclaw:
     homepage: https://github.com/arnif/kronan-cli
@@ -20,12 +20,13 @@ metadata:
 
 # kronan-cli
 
-CLI tool for shopping at [Kronan.is](https://www.kronan.is), Iceland's grocery store chain. Designed for both humans and AI agents.
+CLI tool for shopping at [Krónan.is](https://www.kronan.is), Iceland's grocery store chain. Uses the official Krónan Public API. Designed for both humans and AI agents.
 
 ## Prerequisites
 
 - [GitHub CLI](https://cli.github.com) (`gh`) — required for the install command
-- An Icelandic phone number with **Rafraen skilriki** (SIM-based electronic ID) enabled — required for authentication
+- A Krónan account with **Auðkenni** (Icelandic e-ID) login
+- An Access Token from https://kronan.is/adgangur/adgangslyklar
 
 ## Install
 
@@ -46,21 +47,28 @@ mv kronan ~/.local/bin/
 ## Security and privacy
 
 - **Install script**: `install.sh` executes on your machine and downloads a binary. Audit the [repository](https://github.com/arnif/kronan-cli) and the script before running.
-- **Token storage**: Auth tokens (Cognito JWTs) are stored at `~/.kronan/tokens.json`. These contain session credentials tied to your identity. Ensure the file is only readable by your user (`chmod 600 ~/.kronan/tokens.json`).
-- **PII**: `kronan me` outputs your full user profile including name, phone number, and Icelandic national ID number (kennitala). Do not share this output in public channels or logged LLM conversations.
-- **Credentials**: The login flow sends an auth request to your phone via Rafraen skilriki. No passwords are transmitted or stored — authentication is SIM-based.
+- **Token storage**: Access tokens are stored at `~/.kronan/token`. These are credentials for the Krónan Public API. Ensure the file is only readable by your user (`chmod 600 ~/.kronan/token`).
+- **PII**: `kronan me` outputs your identity information (name and type - user or customer group). Be careful when sharing this output.
+- **API Access**: Tokens are created in your Krónan account settings and can be revoked at any time at https://kronan.is/adgangur/adgangslyklar
 
 ## Authentication
 
+First, create an access token:
+1. Go to https://kronan.is/adgangur/adgangslyklar
+2. Log in with Auðkenni (Icelandic e-ID)
+3. Create a new access token
+
+Then save it with the CLI:
+
 ```bash
-kronan login <phone-number>
+kronan token <your-access-token>
 ```
 
-You will be prompted to confirm on your phone. Tokens are stored locally in `~/.kronan/tokens.json` and refresh automatically.
+The token will be validated and saved locally.
 
 ```bash
-kronan logout    # Clear stored tokens
-kronan status    # Check login status
+kronan logout    # Clear stored token
+kronan status    # Check authentication status
 ```
 
 ## Commands
@@ -84,9 +92,8 @@ kronan product 02500188 --json
 
 ```bash
 kronan cart                         # View cart
-kronan cart add <sku> [quantity]    # Add item
-kronan cart update <lineId> <qty>  # Update quantity
-kronan cart remove <lineId>        # Remove item
+kronan cart add <sku> [quantity]    # Add item to cart
+kronan cart clear                   # Clear all items from cart
 ```
 
 ### Order history
@@ -94,13 +101,20 @@ kronan cart remove <lineId>        # Remove item
 ```bash
 kronan orders                # Recent orders
 kronan orders --json         # JSON output for parsing
-kronan order <id>            # Specific order details
+kronan order <token>         # Specific order details (use order token, not ID)
 ```
 
-### User profile
+### Product lists
 
 ```bash
-kronan me              # ⚠️  Outputs PII (name, phone, kennitala)
+kronan lists                 # View saved product lists
+kronan lists --json
+```
+
+### User identity
+
+```bash
+kronan me              # Show current identity (user or customer group)
 kronan me --json
 ```
 
@@ -108,9 +122,9 @@ kronan me --json
 
 All commands support `--json` for structured output. This makes kronan-cli suitable as a tool for AI agents managing grocery shopping.
 
-**Important:** Commands that change state (`cart add`, `cart update`, `cart remove`, `login`) can modify the user's real shopping cart or initiate authentication. Agents **must ask for explicit user confirmation** before running any state-changing command.
+**Important:** Commands that change state (`cart add`, `cart clear`) can modify the user's real shopping cart. Agents **must ask for explicit user confirmation** before running any state-changing command.
 
-Read-only commands (`search`, `product`, `orders`, `order`, `cart` (view), `me`, `status`) are safe to run without confirmation.
+Read-only commands (`search`, `product`, `orders`, `order`, `cart` (view), `lists`, `me`, `status`) are safe to run without confirmation.
 
 Example agent workflow:
 
@@ -146,24 +160,38 @@ An agent can analyze order history to find frequently purchased items and auto-p
 | `--page <n>` | Page number (search) |
 | `--limit <n>` | Results per page |
 | `--offset <n>` | Offset for pagination (orders) |
-| `--store <extId>` | Store external ID (search, default: 159) |
 
 ## API Reference
 
-The CLI wraps the Kronan backend API at `https://backend.kronan.is/api/`. Key endpoints:
+The CLI uses the official Krónan Public API at `https://api.kronan.is/api/v1/`.
+
+API Documentation:
+- Swagger UI: https://api.kronan.is/api/v1/schema/swagger-ui/
+- ReDoc: https://api.kronan.is/api/v1/schema/redoc/
+
+Key endpoints:
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/products/raw-search/` | POST | No | Product search |
-| `/products/{sku}/` | GET | No | Product detail |
-| `/smart-checkouts/default/` | GET | Yes | View cart |
-| `/smart-checkouts/default/lines/` | POST | Yes | Add to cart |
-| `/smart-checkouts/default/lines/{id}/` | PATCH | Yes | Update cart line |
-| `/smart-checkouts/default/lines/{id}/` | DELETE | Yes | Remove from cart |
+| `/products/search/` | POST | Yes | Product search |
+| `/products/{sku}/` | GET | Yes | Product detail |
+| `/checkout/` | GET | Yes | View checkout/cart |
+| `/checkout/lines/` | POST | Yes | Add/replace checkout lines |
 | `/orders/` | GET | Yes | Order history |
-| `/users/me/` | GET | Yes | User profile |
-| `/customer_groups/` | GET | Yes | Customer groups |
+| `/me/` | GET | Yes | Current identity |
+| `/product-lists/` | GET | Yes | Product lists |
+| `/shopping-notes/` | GET | Yes | Shopping notes |
+| `/product-purchase-stats/` | GET | Yes | Purchase statistics |
 
-Auth header format: `Authorization: CognitoJWT {idToken}`
+Auth header format: `Authorization: AccessToken {token}`
 
-Cart endpoints also require: `Customer-Group-Id: {groupId}`
+## Migration from v0.1.x
+
+If you were using the previous version with Cognito authentication:
+
+1. Remove old tokens: `rm ~/.kronan/tokens.json`
+2. Get a new access token from https://kronan.is/adgangur/adgangslyklar
+3. Run `kronan token <new-token>`
+4. Update any scripts using `kronan login` to use `kronan token` instead
+
+Note: Order IDs in the new API are tokens (UUIDs), not numeric IDs.
