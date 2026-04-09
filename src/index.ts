@@ -538,8 +538,7 @@ async function main() {
         break;
       }
 
-      case "me":
-      case "profile": {
+      case "me": {
         const token = await requireAuth();
         const me = await getMe(token);
         if (jsonOutput) {
