@@ -670,10 +670,20 @@ export async function deleteAllProductListItems(
 export async function getShoppingNote(
   token: AuthToken,
 ): Promise<PublicShoppingNote> {
-  const result = await apiRequest<PublicShoppingNote[]>("/shopping-notes/", {
-    token,
-  });
-  return result[0]!;
+  const result = await apiRequest<PublicShoppingNote | PublicShoppingNote[]>(
+    "/shopping-notes/",
+    {
+      token,
+    },
+  );
+  // API can return either a single object or an array with one object
+  if (Array.isArray(result)) {
+    if (result.length === 0) {
+      throw new Error("No shopping note found");
+    }
+    return result[0]!;
+  }
+  return result;
 }
 
 /**
