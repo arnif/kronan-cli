@@ -99,7 +99,9 @@ async function main() {
       case "token": {
         const tokenValue = args[1];
         if (!tokenValue) {
-          console.error("Usage: kronan token <access-token> [--name <profile-name>]");
+          console.error(
+            "Usage: kronan token <access-token> [--name <profile-name>]",
+          );
           console.error("");
           console.error(
             "Create an access token at: https://kronan.is/adgangur/adgangslyklar",
