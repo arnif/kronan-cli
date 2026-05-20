@@ -375,9 +375,15 @@ export async function cartClearCommand(
 
   if (options.json) {
     console.log(JSON.stringify(result, null, 2));
-  } else {
-    console.log("Cart cleared.");
+    return;
   }
+  const remaining = result.lines?.length ?? 0;
+  if (remaining > 0) {
+    throw new Error(
+      `Cart clear did not take effect (${remaining} lines remain). The API may have changed.`,
+    );
+  }
+  console.log("Cart cleared.");
 }
 
 /**
