@@ -74,9 +74,14 @@ kronan logout                 Clear stored token
 kronan search <query>         Search for products
 kronan product <sku>          Product details by SKU
 
-kronan cart                   View cart
-kronan cart add <sku> [qty]   Add item to cart
-kronan cart clear             Clear cart
+kronan cart                              View cart
+kronan cart add <sku> [qty]              Add item to cart
+kronan cart set '<json>'                 Replace whole cart with JSON lines
+kronan cart update <sku|id> --quantity N Update one line (qty 0 removes)
+kronan cart update '<json-patch>'        Bulk update via JSON patch
+kronan cart remove <sku|id>              Remove a single line
+kronan cart clear                        Clear cart
+                                         (set/update/remove/clear support --dry-run)
 
 kronan orders                 Order history
 kronan order <token>          Specific order details
@@ -85,7 +90,32 @@ kronan lists                  View product lists
 kronan me                     Show current identity
 ```
 
-All commands support `--json` for structured output.
+All commands support `--json` for structured output. Cart mutation commands
+(`set`, `update`, `remove`, `clear`) also accept `--dry-run` to preview the
+resulting cart without calling the API.
+
+### Cart editing examples
+
+```bash
+# Replace the entire cart with a fixed set of lines
+kronan cart set '[{"sku":"02500188","quantity":3}]'
+kronan cart set '{"02500188":1,"100151784":2}'
+
+# Update a single line by SKU or numeric line id
+kronan cart update 02500188 --quantity 5
+kronan cart update 13065307 --quantity 0      # qty 0 removes the line
+
+# Bulk update: object/array of {sku:qty} as a patch.
+# Listed SKUs are set to the given qty (0 removes); unlisted lines are left
+# alone. SKUs not currently in the cart are added when qty > 0.
+kronan cart update '{"02500188":3,"100151784":0,"100224198":1}'
+
+# Remove a single line (shorthand for --quantity 0)
+kronan cart remove 02500188
+
+# Preview any of the above without hitting the API
+kronan cart update '{"02500188":3}' --dry-run --json
+```
 
 ## AI agent usage
 
