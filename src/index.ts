@@ -18,6 +18,9 @@
  *   kronan order <token>       View specific order
  *   kronan cart                View cart contents
  *   kronan cart add <sku> [qty]  Add item to cart
+ *   kronan cart set <json>     Replace cart with JSON lines
+ *   kronan cart update <sku|id> --quantity N  Update a line (0 removes)
+ *   kronan cart remove <sku|id>  Remove a cart line
  *   kronan cart clear          Clear cart
  *   kronan lists               View product lists
  *
@@ -31,8 +34,13 @@ import { getMe } from "./api.ts";
 import { requireAuth } from "./auth.ts";
 import {
   cartAddCommand,
+  cartBulkUpdateCommand,
   cartClearCommand,
+  cartRemoveCommand,
+  cartSetCommand,
+  cartUpdateCommand,
   cartViewCommand,
+  parseCartLinesJson,
 } from "./commands/cart.ts";
 import {
   categoriesCommand,
@@ -92,6 +100,7 @@ function hasFlag(name: string): boolean {
 }
 
 const jsonOutput = hasFlag("json");
+const dryRun = hasFlag("dry-run");
 
 async function main() {
   try {
@@ -314,8 +323,84 @@ async function main() {
             await cartAddCommand(sku, qty, { json: jsonOutput });
             break;
           }
+          case "set": {
+            const json = args[2];
+            if (!json || json.startsWith("-")) {
+              console.error(
+                "Usage: kronan cart set '<json-lines>' [--dry-run] [--json]",
+              );
+              console.error("");
+              console.error("Examples:");
+              console.error(
+                '  kronan cart set \'[{"sku":"02500059","quantity":1}]\'',
+              );
+              console.error(
+                '  kronan cart set \'{"02500059":1,"100151784":2}\'',
+              );
+              process.exit(1);
+            }
+            const lines = parseCartLinesJson(json);
+            await cartSetCommand(lines, { json: jsonOutput, dryRun });
+            break;
+          }
+          case "update": {
+            const identifier = args[2];
+            if (!identifier || identifier.startsWith("-")) {
+              console.error(
+                "Usage: kronan cart update <sku-or-line-id> --quantity N [--dry-run] [--json]",
+              );
+              console.error(
+                "       kronan cart update '<json-patch>' [--dry-run] [--json]",
+              );
+              process.exit(1);
+            }
+            // Bulk patch when arg looks like JSON (starts with [ or {).
+            if (identifier.startsWith("[") || identifier.startsWith("{")) {
+              const patches = parseCartLinesJson(identifier);
+              await cartBulkUpdateCommand(patches, {
+                json: jsonOutput,
+                dryRun,
+              });
+              break;
+            }
+            const qtyFlag = getFlag("quantity");
+            if (qtyFlag === undefined) {
+              console.error(
+                "Usage: kronan cart update <sku-or-line-id> --quantity N [--dry-run] [--json]",
+              );
+              console.error(
+                "       kronan cart update '<json-patch>' [--dry-run] [--json]",
+              );
+              console.error("(--quantity is required for single-line update)");
+              process.exit(1);
+            }
+            const qty = parseInt(qtyFlag, 10);
+            if (Number.isNaN(qty)) {
+              console.error("--quantity must be an integer.");
+              process.exit(1);
+            }
+            await cartUpdateCommand(identifier, qty, {
+              json: jsonOutput,
+              dryRun,
+            });
+            break;
+          }
+          case "remove": {
+            const identifier = args[2];
+            if (!identifier || identifier.startsWith("-")) {
+              console.error(
+                "Usage: kronan cart remove <sku-or-line-id> [--dry-run] [--json]",
+              );
+              process.exit(1);
+            }
+            await cartRemoveCommand(identifier, {
+              json: jsonOutput,
+              dryRun,
+            });
+            break;
+          }
           case "clear": {
-            await cartClearCommand({ json: jsonOutput });
+            await cartClearCommand({ json: jsonOutput, dryRun });
             break;
           }
           case "view":
@@ -325,7 +410,9 @@ async function main() {
           }
           default:
             console.error(`Unknown cart subcommand: ${subcommand}`);
-            console.error("Usage: kronan cart [view|add|clear]");
+            console.error(
+              "Usage: kronan cart [view|add|set|update|remove|clear]",
+            );
             process.exit(1);
         }
         break;
@@ -607,7 +694,17 @@ Orders:
 Cart:
   cart                            View cart contents (default)
   cart add <sku> [qty]            Add item to cart
+  cart set '<json-lines>'         Replace cart with JSON lines.
+                                  Accepts an array of {sku,quantity[,substitution]}
+                                  or an object map {sku:quantity}.
+  cart update <sku-or-line-id> --quantity N
+                                  Update a single cart line. --quantity 0 removes.
+  cart update '<json-patch>'      Bulk update: object/array of {sku:qty}.
+                                  Listed SKUs are set (qty 0 removes); other lines untouched.
+                                  Adds new SKUs when qty > 0.
+  cart remove <sku-or-line-id>    Remove a cart line (matches SKU or line id).
   cart clear                      Clear cart
+                                  (set/update/remove/clear support --dry-run)
 
 Product Lists:
   lists                           View all product lists
@@ -649,6 +746,8 @@ Flags:
   --name <name>                   Profile name for token command
   --force                         Force destructive operations
   --include-ignored               Include ignored items in stats
+  --dry-run                       Print planned cart lines without calling API
+                                  (cart set/update/remove/clear)
 
 Examples:
   kronan token abc123 --name personal
@@ -665,6 +764,11 @@ Examples:
   kronan order delete-lines abc123 line1 line2
   kronan cart
   kronan cart add 02500188 2
+  kronan cart set '[{"sku":"02500188","quantity":3}]'
+  kronan cart set '{"02500188":1,"100151784":2}' --dry-run
+  kronan cart update 02500188 --quantity 5
+  kronan cart update '{"02500188":3,"100151784":0}' --dry-run
+  kronan cart remove 02500188
   kronan lists create "Weekly Shopping" --description "Groceries for the week"
   kronan lists add mylist-token 02500188 3
   kronan notes add --text "Buy milk" --sku 02500188 --quantity 2

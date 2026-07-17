@@ -544,6 +544,12 @@ export async function addCheckoutLines(
 
 /**
  * Replace all checkout lines.
+ *
+ * Workaround for upstream API behaviour: `POST /checkout/lines/` with
+ * `{lines: [], replace: true}` is silently a no-op (returns the unchanged
+ * checkout instead of clearing it — see arnif/kronan-cli#7). When the caller
+ * asks for an empty cart we instead fetch the current lines and send each one
+ * back with `quantity: 0`, which the backend honours.
  */
 export async function replaceCheckoutLines(
   token: AuthToken,
@@ -553,7 +559,34 @@ export async function replaceCheckoutLines(
     substitution?: boolean;
   }>,
 ): Promise<PublicCheckout> {
-  return addCheckoutLines(token, lines, true);
+  if (lines.length > 0) {
+    return addCheckoutLines(token, lines, true);
+  }
+
+  const checkout = await getCheckout(token);
+  const existing = checkout?.lines ?? [];
+  if (existing.length === 0) {
+    // Cart already empty; nothing to do. Synthesize an empty checkout if the
+    // GET returned null (no active checkout).
+    return (
+      checkout ?? {
+        token: "",
+        lines: [],
+        total: 0,
+        subtotal: 0,
+        baggingFee: 0,
+        serviceFee: 0,
+        shippingFee: 0,
+        shippingFeeCutoff: 0,
+      }
+    );
+  }
+  const deletes = existing.map((line) => ({
+    sku: line.product?.sku ?? "",
+    quantity: 0,
+    substitution: line.substitution ?? true,
+  }));
+  return addCheckoutLines(token, deletes, true);
 }
 
 // --- Product Lists API Functions ---
