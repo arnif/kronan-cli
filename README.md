@@ -81,6 +81,7 @@ kronan cart update <sku|id> --quantity N Update one line (qty 0 removes)
 kronan cart update '<json-patch>'        Bulk update via JSON patch
 kronan cart remove <sku|id>              Remove a single line
 kronan cart clear                        Clear cart
+kronan slots                             View delivery slots for the default address
                                          (set/update/remove/clear support --dry-run)
 
 kronan orders                 Order history

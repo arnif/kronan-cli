@@ -268,6 +268,31 @@ export interface PaginatedPublicProductPurchaseStatsListResponse {
   results: PublicProductPurchaseStatsListResponse[];
 }
 
+export interface PublicAddress {
+  id: number;
+  streetAddress1: string;
+  city: string;
+  postalCode: string;
+  comment: string;
+  lat: number | null;
+  lng: number | null;
+  dropoffOutside: boolean;
+  isDefaultShipping: boolean;
+}
+
+export interface PublicSlot {
+  slotId: number;
+  timeStart: string;
+  timeStop: string;
+  /** Remaining capacity: 0 is full and -1 means unlimited. */
+  availabilityStatus: number;
+}
+
+export interface PublicSlotDay {
+  day: string;
+  slots: PublicSlot[];
+}
+
 // --- API Client ---
 
 async function apiRequest<T>(
@@ -342,6 +367,36 @@ export async function getMe(token: AuthToken): Promise<PublicMe> {
     return result[0]!;
   }
   return result;
+}
+
+/** List the authenticated account's delivery addresses. */
+export async function getAddresses(token: AuthToken): Promise<PublicAddress[]> {
+  return apiRequest<PublicAddress[]>("/addresses/", { token });
+}
+
+/** Get delivery slots available for one of the account's addresses. */
+export async function getDeliverySlots(
+  token: AuthToken,
+  addressId: number,
+): Promise<PublicSlotDay[]> {
+  return apiRequest<PublicSlotDay[]>("/slots/delivery/", {
+    method: "POST",
+    token,
+    body: { addressId },
+  });
+}
+
+/** Get pickup slots grouped by Krónan store. */
+export async function getPickupSlots(
+  token: AuthToken,
+): Promise<
+  Array<{ storeName: string; storeChain: string; days: PublicSlotDay[] }>
+> {
+  return apiRequest("/slots/pickup/", {
+    method: "POST",
+    token,
+    body: { chain: "kronan" },
+  });
 }
 
 /**

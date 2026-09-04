@@ -84,6 +84,11 @@ import {
   notesToggleCommand,
   notesUpdateCommand,
 } from "./commands/shopping-notes.ts";
+import {
+  addressesCommand,
+  deliverySlotsCommand,
+  pickupSlotsCommand,
+} from "./commands/slots.ts";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -101,6 +106,15 @@ function hasFlag(name: string): boolean {
 
 const jsonOutput = hasFlag("json");
 const dryRun = hasFlag("dry-run");
+const confirmed = hasFlag("yes");
+
+function requireWriteConfirmation(): void {
+  if (!confirmed) {
+    throw new Error(
+      "This command changes your Krónan account. Review it and repeat with --yes to confirm.",
+    );
+  }
+}
 
 async function main() {
   try {
@@ -180,6 +194,38 @@ async function main() {
         break;
       }
 
+      case "slots": {
+        const subcommand = args[1]?.startsWith("-")
+          ? "delivery"
+          : (args[1] ?? "delivery");
+        if (subcommand !== "delivery" && subcommand !== "pickup") {
+          console.error(
+            "Usage: kronan slots [delivery] [--address-id N] [--json]",
+          );
+          process.exit(1);
+        }
+        if (subcommand === "pickup") {
+          await pickupSlotsCommand({ json: jsonOutput });
+          break;
+        }
+        const addressId = getFlag("address-id");
+        const parsedAddressId = addressId ? parseInt(addressId, 10) : undefined;
+        if (addressId && (!parsedAddressId || parsedAddressId < 1)) {
+          console.error("--address-id must be a positive integer");
+          process.exit(1);
+        }
+        await deliverySlotsCommand({
+          addressId: parsedAddressId,
+          json: jsonOutput,
+        });
+        break;
+      }
+
+      case "addresses": {
+        await addressesCommand({ json: jsonOutput });
+        break;
+      }
+
       case "category": {
         const slug = args[1];
         if (!slug) {
@@ -212,6 +258,7 @@ async function main() {
           subcommand === "toggle-substitution"
         ) {
           // Order modification subcommands
+          requireWriteConfirmation();
           switch (subcommand) {
             case "delete-lines": {
               const orderToken = args[2];
@@ -320,6 +367,7 @@ async function main() {
               console.error("Usage: kronan cart add <sku> [quantity] [--json]");
               process.exit(1);
             }
+            requireWriteConfirmation();
             await cartAddCommand(sku, qty, { json: jsonOutput });
             break;
           }
@@ -340,6 +388,7 @@ async function main() {
               process.exit(1);
             }
             const lines = parseCartLinesJson(json);
+            if (!dryRun) requireWriteConfirmation();
             await cartSetCommand(lines, { json: jsonOutput, dryRun });
             break;
           }
@@ -357,6 +406,7 @@ async function main() {
             // Bulk patch when arg looks like JSON (starts with [ or {).
             if (identifier.startsWith("[") || identifier.startsWith("{")) {
               const patches = parseCartLinesJson(identifier);
+              if (!dryRun) requireWriteConfirmation();
               await cartBulkUpdateCommand(patches, {
                 json: jsonOutput,
                 dryRun,
@@ -379,6 +429,7 @@ async function main() {
               console.error("--quantity must be an integer.");
               process.exit(1);
             }
+            if (!dryRun) requireWriteConfirmation();
             await cartUpdateCommand(identifier, qty, {
               json: jsonOutput,
               dryRun,
@@ -393,6 +444,7 @@ async function main() {
               );
               process.exit(1);
             }
+            if (!dryRun) requireWriteConfirmation();
             await cartRemoveCommand(identifier, {
               json: jsonOutput,
               dryRun,
@@ -400,6 +452,7 @@ async function main() {
             break;
           }
           case "clear": {
+            if (!dryRun) requireWriteConfirmation();
             await cartClearCommand({ json: jsonOutput, dryRun });
             break;
           }
@@ -423,6 +476,13 @@ async function main() {
         const subcommand = args.find(
           (arg) => !arg.startsWith("-") && args.indexOf(arg) === 1,
         );
+        if (
+          ["create", "delete", "add", "remove", "clear"].includes(
+            subcommand ?? "",
+          )
+        ) {
+          requireWriteConfirmation();
+        }
         switch (subcommand) {
           case "create": {
             const name = args[2];
@@ -529,6 +589,13 @@ async function main() {
         const subcommand = args.find(
           (arg) => !arg.startsWith("-") && args.indexOf(arg) === 1,
         );
+        if (
+          ["add", "update", "remove", "toggle", "clear"].includes(
+            subcommand ?? "",
+          )
+        ) {
+          requireWriteConfirmation();
+        }
         switch (subcommand) {
           case "add": {
             const text = getFlag("text");
@@ -600,6 +667,7 @@ async function main() {
         // Check if args[1] is a subcommand (not a flag)
         const subcommand = args[1];
         if (subcommand === "ignore" || subcommand === "unignore") {
+          requireWriteConfirmation();
           const id = args[2];
           if (!id || id.startsWith("-")) {
             console.error(`Usage: kronan stats ${subcommand} <id> [--json]`);
@@ -680,6 +748,8 @@ Products & Search:
   product <sku>                   Get product details by SKU
   categories                      List all categories
   category <slug>                 List products in a category
+  addresses                       List saved delivery addresses
+  slots [delivery|pickup]         List delivery or pickup slots
 
 Orders:
   orders                          View order history
@@ -741,10 +811,12 @@ Flags:
   --offset <n>                    Offset for pagination
   --quantity <n>                  Quantity for add/lower-quantity commands
   --description <text>            Description for lists create
+  --address-id <n>                Delivery address for slots (default: account default)
   --text <text>                   Text for notes
   --sku <sku>                     SKU for notes
   --name <name>                   Profile name for token command
   --force                         Force destructive operations
+  --yes                           Confirm a command that writes to Krónan
   --include-ignored               Include ignored items in stats
   --dry-run                       Print planned cart lines without calling API
                                   (cart set/update/remove/clear)
@@ -759,6 +831,7 @@ Examples:
   kronan product 02500188
   kronan categories
   kronan category mjolkursvorur
+  kronan slots
   kronan orders --json
   kronan order abc123...
   kronan order delete-lines abc123 line1 line2
